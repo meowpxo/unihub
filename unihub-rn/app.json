@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "UniHub",
+    "slug": "unihub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0d0f14"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.unihub.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0d0f14"
+      },
+      "package": "com.unihub.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset"
+    ],
+    "scheme": "unihub"
+  }
+}
