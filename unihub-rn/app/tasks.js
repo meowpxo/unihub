@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const FILTERS       = ['All', 'assignment', 'lab', 'study', 'fyp', 'quiz', 'other'];
 const FILTER_LABELS = { All: 'All', assignment: 'Assignment', lab: 'Lab', study: 'Study', fyp: 'FYP', quiz: 'Quiz', other: 'Other' };
@@ -147,7 +148,7 @@ export default function TasksScreen() {
           >
             {syncing
               ? <ActivityIndicator color="white" size="small" />
-              : <Text style={styles.syncBtnText}>⟳ Sync Moodle</Text>
+              : <><Ionicons name="refresh" size={15} color="white" /><Text style={[styles.syncBtnText, { marginLeft: 6 }]}>Sync Moodle</Text></>
             }
           </TouchableOpacity>
         </View>
@@ -182,9 +183,11 @@ export default function TasksScreen() {
           <ActivityIndicator color={Colors.accent} style={{ marginTop: 40 }} />
         ) : tasks.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.accent3}20`, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <Ionicons name="clipboard" size={34} color={Colors.accent3} />
+            </View>
             <Text style={styles.emptyText}>No tasks yet</Text>
-            <Text style={styles.emptyHint}>Tap ⟳ Sync Moodle or + to add tasks</Text>
+            <Text style={styles.emptyHint}>Sync Moodle or tap + to add tasks</Text>
           </View>
         ) : (
           <View style={styles.taskList}>
@@ -200,7 +203,7 @@ export default function TasksScreen() {
                     style={[styles.check, t.is_done && styles.checkDone]}
                     onPress={() => handleToggle(t.id)} activeOpacity={0.7}
                   >
-                    {!!t.is_done && <Text style={styles.checkMark}>✓</Text>}
+                    {!!t.is_done && <Ionicons name="checkmark" size={14} color="white" />}
                   </TouchableOpacity>
 
                   <View style={styles.taskBody}>
@@ -239,7 +242,7 @@ export default function TasksScreen() {
 
       {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowModal(true)} activeOpacity={0.85}>
-        <Text style={styles.fabText}>＋</Text>
+        <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
 
       {/* Add Task Modal */}
@@ -248,7 +251,7 @@ export default function TasksScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Task</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowModal(false)}><Ionicons name="close" size={22} color={Colors.muted} /></TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>

@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const COURSE_COLORS = [Colors.accent, Colors.accent2, Colors.teal ?? '#4ecdc4', Colors.warn, Colors.accent3, Colors.accent4];
 
@@ -151,16 +152,21 @@ export default function GPAScreen() {
         {/* Section Header */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Courses</Text>
-          <TouchableOpacity onPress={() => setShowCourseModal(true)}>
-            <Text style={styles.addBtn}>+ Add Course</Text>
+          <TouchableOpacity style={styles.addCourseBtn} onPress={() => setShowCourseModal(true)}>
+            <View style={{ width: 20, height: 20, borderRadius: 7, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="add" size={14} color="white" />
+            </View>
+            <Text style={styles.addBtn}>Add Course</Text>
           </TouchableOpacity>
         </View>
 
         {courses.length === 0 && (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>📊</Text>
+            <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.accent2}25`, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <Ionicons name="bar-chart" size={34} color={Colors.accent2} />
+            </View>
             <Text style={styles.emptyText}>No courses yet</Text>
-            <Text style={styles.emptyHint}>Tap "+ Add Course" to start tracking your GPA</Text>
+            <Text style={styles.emptyHint}>Tap "Add Course" to start tracking your GPA</Text>
           </View>
         )}
 
@@ -211,7 +217,7 @@ export default function GPAScreen() {
                           {a.score !== null ? `${a.score}/${a.max_score}` : '—'}
                         </Text>
                         <TouchableOpacity style={styles.delBtn} onPress={() => handleDeleteAssessment(a.id)}>
-                          <Text style={styles.delBtnText}>✕</Text>
+                          <Ionicons name="trash-outline" size={15} color={Colors.accent3} />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -233,7 +239,7 @@ export default function GPAScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Course</Text>
-              <TouchableOpacity onPress={() => setShowCourseModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowCourseModal(false)}><Ionicons name="close" size={22} color={Colors.muted} /></TouchableOpacity>
             </View>
             {[
               { key: 'course_name', label: 'Course Name *', placeholder: 'Data Structures & Algorithms' },
@@ -267,7 +273,7 @@ export default function GPAScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Mark — {selectedCourse?.course_code}</Text>
-              <TouchableOpacity onPress={() => setShowAssessModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowAssessModal(false)}><Ionicons name="close" size={22} color={Colors.muted} /></TouchableOpacity>
             </View>
             {[
               { key: 'name',      label: 'Assessment Name *', placeholder: 'Midterm Exam',  keyboardType: 'default' },
@@ -320,6 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 22, marginBottom: 12,
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
+  addCourseBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   addBtn: { fontSize: 12, color: Colors.accent, fontWeight: '700' },
 
   emptyBox: { alignItems: 'center', paddingVertical: 40 },

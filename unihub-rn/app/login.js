@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/Colors';
 import { API_BASE_URL } from '../constants/Config';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -31,18 +32,29 @@ export default function LoginScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
       await AsyncStorage.setItem('unihub_token', data.token);
       await AsyncStorage.setItem('unihub_user', JSON.stringify(data.user));
       router.replace('/');
     } catch (err) {
-      Alert.alert('Login Failed', err.message);
+      const msg = err.name === 'AbortError'
+        ? 'Connection timed out. Make sure the server is running and the IP is correct.'
+        : err.message;
+      Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -74,7 +86,7 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email</Text>
               <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
-                <Text style={styles.inputIcon}>✉</Text>
+                <Ionicons name="mail" size={18} color="#4f8ef7" />
                 <TextInput
                   style={styles.input}
                   placeholder="student@university.edu.my"
@@ -93,7 +105,7 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Ionicons name="lock-closed" size={18} color="#7b5ea7" />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"
@@ -103,7 +115,7 @@ export default function LoginScreen() {
                   onChangeText={t => { setPassword(t); setErrors(e => ({ ...e, password: null })); }}
                 />
                 <TouchableOpacity onPress={() => setShowPass(p => !p)} activeOpacity={0.7}>
-                  <Text style={styles.inputIcon}>{showPass ? '🙈' : '👁'}</Text>
+                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color="#38c9a0" />
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -144,7 +156,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footer}>UniHub v1.0 · UITM FYP 2026</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

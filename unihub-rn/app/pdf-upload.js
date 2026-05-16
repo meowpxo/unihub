@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/Colors';
 import { API_BASE_URL } from '../constants/Config';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -104,7 +105,9 @@ export default function PdfUploadScreen() {
 
         {/* Upload Zone */}
         <TouchableOpacity style={styles.uploadZone} onPress={pickPDF} activeOpacity={0.7}>
-          <Text style={styles.uploadIcon}>📄</Text>
+          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.accent}20`, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+            <Ionicons name={file ? 'document-text' : 'document-outline'} size={36} color={Colors.accent} />
+          </View>
           {file
             ? <Text style={styles.uploadFileText}>{file.name}</Text>
             : <Text style={styles.uploadPrompt}>Tap to select PDF</Text>
@@ -119,7 +122,7 @@ export default function PdfUploadScreen() {
           >
             {uploading
               ? <><ActivityIndicator color="white" /><Text style={styles.parseBtnText}>  Parsing…</Text></>
-              : <Text style={styles.parseBtnText}>⚡ Parse Schedule</Text>
+              : <><Ionicons name="flash" size={18} color="white" /><Text style={[styles.parseBtnText, { marginLeft: 8 }]}>Parse Schedule</Text></>
             }
           </TouchableOpacity>
         )}
@@ -149,7 +152,10 @@ export default function PdfUploadScreen() {
                     <Text style={[styles.typeBadgeText, { color: typeColor(ev.type) }]}>{ev.type}</Text>
                   </View>
                 </View>
-                <Text style={styles.eventDate}>📅 {ev.date}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Ionicons name="calendar-outline" size={12} color={Colors.muted} />
+                  <Text style={styles.eventDate}>{ev.date}</Text>
+                </View>
                 {ev.description && <Text style={styles.eventDesc}>{ev.description}</Text>}
               </View>
             ))}
@@ -161,7 +167,7 @@ export default function PdfUploadScreen() {
               >
                 {saving
                   ? <ActivityIndicator color="white" />
-                  : <Text style={styles.saveBtnText}>{saved ? '✓ Saved to Schedule' : '💾 Save to Schedule'}</Text>
+                  : <><Ionicons name={saved ? 'checkmark-circle' : 'save-outline'} size={18} color="white" /><Text style={[styles.saveBtnText, { marginLeft: 8 }]}>{saved ? 'Saved to Schedule' : 'Save to Schedule'}</Text></>
                 }
               </TouchableOpacity>
             )}
@@ -198,7 +204,7 @@ export default function PdfUploadScreen() {
                 >
                   {savingTT
                     ? <ActivityIndicator color="white" />
-                    : <Text style={styles.saveBtnText}>{savedTT ? '✓ Timetable Saved' : '📅 Save as Timetable'}</Text>
+                    : <><Ionicons name={savedTT ? 'checkmark-circle' : 'calendar-outline'} size={18} color="white" /><Text style={[styles.saveBtnText, { marginLeft: 8 }]}>{savedTT ? 'Timetable Saved' : 'Save as Timetable'}</Text></>
                   }
                 </TouchableOpacity>
               </View>

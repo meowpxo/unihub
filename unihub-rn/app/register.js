@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { API_BASE_URL } from '../constants/Config';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const [form, setForm] = useState({ name: '', studentId: '', email: '', password: '', confirm: '' });
@@ -59,11 +60,11 @@ export default function RegisterScreen() {
   }
 
   const fields = [
-    { key: 'name', label: 'Full Name', icon: '👤', placeholder: 'Syed Muhammad Zulkifli', type: 'default' },
-    { key: 'studentId', label: 'Student ID', icon: '🎓', placeholder: '52213224368', type: 'default' },
-    { key: 'email', label: 'Email', icon: '✉', placeholder: 'student@student.uitm.edu.my', type: 'email-address' },
-    { key: 'password', label: 'Password', icon: '🔒', placeholder: 'Min. 6 characters', secure: true },
-    { key: 'confirm', label: 'Confirm Password', icon: '🔒', placeholder: 'Re-enter password', secure: true },
+    { key: 'name',      label: 'Full Name',        icon: 'person',      iconColor: '#7b5ea7', placeholder: 'Syed Muhammad Zulkifli',         type: 'default' },
+    { key: 'studentId', label: 'Student ID',        icon: 'school',      iconColor: '#38c9a0', placeholder: '52213224368',                   type: 'default' },
+    { key: 'email',     label: 'Email',             icon: 'mail',        iconColor: '#4f8ef7', placeholder: 'student@university.edu.my',     type: 'email-address' },
+    { key: 'password',  label: 'Password',          icon: 'lock-closed', iconColor: '#2dcfce', placeholder: 'Min. 6 characters',             secure: true },
+    { key: 'confirm',   label: 'Confirm Password',  icon: 'lock-closed', iconColor: '#e8604c', placeholder: 'Re-enter password',             secure: true },
   ];
 
   return (
@@ -72,7 +73,9 @@ export default function RegisterScreen() {
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backText}>← Back</Text>
+            <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: `${Colors.accent}18`, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="arrow-back" size={20} color={Colors.accent} />
+            </View>
           </TouchableOpacity>
 
           <View style={styles.header}>
@@ -85,7 +88,7 @@ export default function RegisterScreen() {
               <View key={f.key} style={styles.fieldGroup}>
                 <Text style={styles.label}>{f.label}</Text>
                 <View style={[styles.inputWrapper, errors[f.key] && styles.inputError]}>
-                  <Text style={styles.inputIcon}>{f.icon}</Text>
+                  <Ionicons name={f.icon} size={18} color={f.iconColor} />
                   <TextInput
                     style={styles.input}
                     placeholder={f.placeholder}

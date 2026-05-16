@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const SLOT_COLORS = [Colors.accent, Colors.accent2, Colors.teal ?? '#4ecdc4', Colors.warn, Colors.accent3, Colors.accent4];
 const SLOT_TYPES  = ['lecture', 'lab', 'tutorial', 'fyp', 'break', 'other'];
@@ -115,7 +116,9 @@ export default function ScheduleScreen() {
             <ActivityIndicator color={Colors.accent} style={{ marginTop: 40 }} />
           ) : slots.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>📭</Text>
+              <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.accent}20`, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                <Ionicons name="calendar-clear" size={34} color={Colors.accent} />
+              </View>
               <Text style={styles.emptyText}>No classes on {DAY_LABELS[days[activeDay].dow]}</Text>
               <Text style={styles.emptyHint}>Tap + to add a class</Text>
             </View>
@@ -149,7 +152,7 @@ export default function ScheduleScreen() {
 
       {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowModal(true)} activeOpacity={0.85}>
-        <Text style={styles.fabText}>＋</Text>
+        <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
 
       {/* Add Slot Modal */}
@@ -158,7 +161,7 @@ export default function ScheduleScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Class</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}><Text style={styles.modalClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowModal(false)}><Ionicons name="close" size={22} color={Colors.muted} /></TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>

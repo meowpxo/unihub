@@ -9,8 +9,17 @@ export async function apiFetch(path, options = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
-  const res  = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
-  return data;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res  = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal: controller.signal });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
+    return data;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Request timed out. Check your network or server.');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -9,11 +9,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
-function SettingItem({ icon, label, sub, hasToggle, toggleVal, onToggle, danger, onPress }) {
+function SettingItem({ icon, iconColor, iconBg, label, sub, hasToggle, toggleVal, onToggle, danger, onPress }) {
+  const ic = danger ? Colors.accent3 : (iconColor || Colors.accent);
+  const bg = danger ? `${Colors.accent3}20` : (iconBg || `${ic}20`);
   return (
     <TouchableOpacity style={styles.settingItem} activeOpacity={0.7} onPress={onPress}>
-      <Text style={styles.settingIcon}>{icon}</Text>
+      <View style={[styles.settingIconWrap, { backgroundColor: bg }]}>
+        <Ionicons name={icon} size={19} color={ic} />
+      </View>
       <View style={styles.settingText}>
         <Text style={[styles.settingLabel, danger && { color: Colors.accent3 }]}>{label}</Text>
         {sub ? <Text style={styles.settingSub}>{sub}</Text> : null}
@@ -22,11 +27,11 @@ function SettingItem({ icon, label, sub, hasToggle, toggleVal, onToggle, danger,
         <Switch
           value={toggleVal}
           onValueChange={onToggle}
-          trackColor={{ false: Colors.border, true: Colors.accent }}
+          trackColor={{ false: Colors.border, true: ic }}
           thumbColor="white"
         />
       ) : (
-        <Text style={styles.settingArrow}>›</Text>
+        <Ionicons name="chevron-forward" size={16} color={Colors.muted} />
       )}
     </TouchableOpacity>
   );
@@ -120,27 +125,27 @@ export default function ProfileScreen() {
         {/* Integrations */}
         <Text style={styles.groupTitle}>Integrations</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="📄" label="PDF Schedule" sub="Upload academic calendar PDF"
+          <SettingItem icon="document-text" iconColor="#4f8ef7" label="PDF Schedule" sub="Upload academic calendar PDF"
             onPress={() => router.push('/pdf-upload')} />
-          <SettingItem icon="🗓" label="Google Calendar" sub={calSync ? 'Synced' : 'Not connected'}
+          <SettingItem icon="calendar" iconColor="#38c9a0" label="Google Calendar" sub={calSync ? 'Synced' : 'Not connected'}
             hasToggle toggleVal={calSync} onToggle={() => setCalSync(v => !v)} />
         </View>
 
         {/* Notifications */}
         <Text style={styles.groupTitle}>Notifications</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="🔔" label="Deadline Reminders" sub="Push alerts for upcoming tasks"
+          <SettingItem icon="notifications" iconColor="#f0a500" label="Deadline Reminders" sub="Push alerts for upcoming tasks"
             hasToggle toggleVal={notifs} onToggle={() => setNotifs(v => !v)} />
-          <SettingItem icon="⚡" label="Clash Alerts" sub="Warn when multiple deadlines clash"
+          <SettingItem icon="flash" iconColor="#e8604c" label="Clash Alerts" sub="Warn when multiple deadlines clash"
             hasToggle toggleVal={clash} onToggle={() => setClash(v => !v)} />
         </View>
 
         {/* Account */}
         <Text style={styles.groupTitle}>Account</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="👤" label="Profile" sub={user?.email || ''} />
-          <SettingItem icon="🔒" label="Change Password" sub="Update your password" />
-          <SettingItem icon="🚪" label="Log Out" sub="Sign out of UniHub" danger onPress={handleLogout} />
+          <SettingItem icon="person" iconColor="#7b5ea7" label="Profile" sub={user?.email || ''} />
+          <SettingItem icon="lock-closed" iconColor="#2dcfce" label="Change Password" sub="Update your password" />
+          <SettingItem icon="log-out" label="Log Out" sub="Sign out of UniHub" danger onPress={handleLogout} />
         </View>
 
       </ScrollView>
@@ -185,7 +190,10 @@ const styles = StyleSheet.create({
     borderRadius: 14, padding: 14, flexDirection: 'row',
     alignItems: 'center', gap: 14,
   },
-  settingIcon: { fontSize: 20, width: 30, textAlign: 'center' },
+  settingIconWrap: {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
   settingText: { flex: 1 },
   settingLabel: { fontSize: 14, fontWeight: '500', color: Colors.text },
   settingSub: { fontSize: 12, color: Colors.muted, marginTop: 2 },

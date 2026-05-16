@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const PRI_COLOR  = { High: Colors.accent3, Med: Colors.warn, Low: Colors.accent4 };
 const TYPE_COLOR = { assignment: Colors.accent, lab: Colors.accent2, fyp: Colors.accent3, study: Colors.accent4, quiz: Colors.warn, other: Colors.accent };
@@ -23,7 +24,9 @@ function greeting() {
 function StatCard({ icon, value, label, color }) {
   return (
     <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <View style={[styles.statIconWrap, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={18} color={color} />
+      </View>
       <Text style={[styles.statVal, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -159,9 +162,9 @@ export default function DashboardScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCard icon="📅" value={String(stats.upcomingDeadlines)} label="Deadlines"  color={Colors.accent} />
-          <StatCard icon="✅" value={String(stats.completedTasks)}    label="Completed"  color={Colors.accent4} />
-          <StatCard icon="📊" value={gpa !== null ? String(gpa) : '—'} label="Curr. GPA" color={Colors.accent2} />
+          <StatCard icon="calendar-outline"        value={String(stats.upcomingDeadlines)} label="Deadlines"  color={Colors.accent} />
+          <StatCard icon="checkmark-circle-outline" value={String(stats.completedTasks)}    label="Completed"  color={Colors.accent4} />
+          <StatCard icon="bar-chart-outline"        value={gpa !== null ? String(gpa) : '—'} label="Curr. GPA" color={Colors.accent2} />
         </View>
 
         {/* Moodle Sync Card */}
@@ -177,7 +180,7 @@ export default function DashboardScreen() {
             </View>
             {syncing
               ? <ActivityIndicator color={Colors.accent2} size="small" />
-              : <Text style={styles.moodlePromptArrow}>⟳</Text>
+              : <Ionicons name="refresh-outline" size={22} color={Colors.accent2} />
             }
           </TouchableOpacity>
         ) : (
@@ -196,7 +199,7 @@ export default function DashboardScreen() {
             >
               {syncing
                 ? <ActivityIndicator color="white" size="small" />
-                : <Text style={styles.reSyncText}>⟳</Text>
+                : <Ionicons name="refresh-outline" size={16} color="white" />
               }
             </TouchableOpacity>
           </View>
@@ -205,7 +208,7 @@ export default function DashboardScreen() {
         {/* Clash Alert (Module 8) */}
         {firstClash && (
           <View style={styles.alertCard}>
-            <Text style={styles.alertIcon}>⚡</Text>
+            <Ionicons name="flash" size={22} color="#ff7a6b" />
             <View style={{ flex: 1 }}>
               <Text style={styles.alertTitle}>
                 Clash Alert – {new Date(firstClash.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -215,7 +218,7 @@ export default function DashboardScreen() {
               </Text>
               {firstClash.suggestion && (
                 <View style={styles.suggestionRow}>
-                  <Text style={styles.suggestionIcon}>💡</Text>
+                  <Ionicons name="bulb-outline" size={14} color={Colors.warn} style={{ marginTop: 2 }} />
                   <Text style={styles.suggestionText}>
                     Complete{firstClash.suggestion.course ? ` "${firstClash.suggestion.course}"` : ''}{' '}
                     <Text style={styles.suggestionTask}>"{firstClash.suggestion.title}"</Text>
@@ -248,7 +251,10 @@ export default function DashboardScreen() {
         {/* Weekly Workload */}
         {workload.length > 0 && (
           <View style={styles.workloadCard}>
-            <Text style={styles.workloadTitle}>⚖ Weekly Workload</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+              <Ionicons name="stats-chart-outline" size={16} color={Colors.text} />
+              <Text style={styles.workloadTitle}>Weekly Workload</Text>
+            </View>
             {workload.map((w, i) => (
               <View key={i} style={styles.wlRow}>
                 <Text style={styles.wlLabel}>{w.label}</Text>
@@ -295,7 +301,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
     borderRadius: 16, padding: 14, gap: 5,
   },
-  statIcon:  { fontSize: 18 },
+  statIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   statVal:   { fontSize: 20, fontWeight: '800' },
   statLabel: { fontSize: 10, color: Colors.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
 
@@ -377,7 +383,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
     borderRadius: 20, padding: 18,
   },
-  workloadTitle: { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 14 },
+  workloadTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   wlRow:         { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   wlLabel:       { fontSize: 11, color: Colors.muted, width: 30, textAlign: 'right' },
   wlTrack: { flex: 1, height: 6, backgroundColor: '#2a3045', borderRadius: 99, overflow: 'hidden' },
