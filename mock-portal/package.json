@@ -1,0 +1,14 @@
+{
+  "name": "unihub-mock-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local mock of the UniKL/Moodle learning portal for UniHub development. Serves fake schedule, grades/GPA and assignment data in the real Moodle Web Services REST format. NOT the real portal — development/testing only.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
