@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UniHub VLE — Mock Portal</title>
+<style>
+  :root{
+    --bg:#eef1f7; --card:#ffffff; --line:#e6eaf2; --text:#1e2748; --muted:#6b7596;
+    --brand:#1f3c88; --brand-2:#2a63d6; --accent:#19a7e6;
+    --green:#1aa06d; --amber:#f0a429; --red:#e5484d; --radius:14px;
+    --shadow:0 2px 10px rgba(24,40,90,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  a{color:inherit;text-decoration:none}
+  .hidden{display:none !important}
+
+  /* ══════════ LOGIN / LANDING ══════════ */
+  #auth{min-height:100vh;display:flex;flex-direction:column;background:#0f1220;color:#e8eaf3}
+  .vle-nav{display:flex;align-items:center;gap:22px;padding:14px 32px;background:#fff;color:#12203f;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+  .vle-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.3px}
+  .vle-brand .mk{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--accent));display:grid;place-items:center;color:#fff}
+  .vle-brand small{display:block;font-size:10px;font-weight:600;color:#5b6b8c;letter-spacing:1px}
+  .vle-links{display:flex;gap:20px;font-size:14px;color:#36456b;font-weight:500}
+  .vle-links a:hover{color:var(--brand-2)}
+  .vle-nav .spacer{flex:1}
+  .mockbadge{font-size:11px;font-weight:700;letter-spacing:.3px;color:#6a4a00;background:#ffe3a3;padding:5px 12px;border-radius:999px;border:1px solid #f4cf7a}
+  .hero{flex:1;position:relative;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:40px;padding:60px 48px;overflow:hidden;
+    background:radial-gradient(1200px 600px at 10% -10%,#15337a 0%,transparent 60%),radial-gradient(1000px 500px at 110% 120%,#0b2a66 0%,transparent 55%),linear-gradient(135deg,#0b1430,#0f1220)}
+  .hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(25,167,230,.25) 1px,transparent 1.4px);background-size:26px 26px;opacity:.25;pointer-events:none}
+  .hero-copy{position:relative;z-index:1}
+  .hero-copy .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:14px}
+  .hero-copy h1{font-size:46px;line-height:1.05;margin:0 0 16px;font-weight:800}
+  .hero-copy h1 .u{color:var(--accent)}
+  .hero-copy p{color:#b8c2e0;font-size:16px;max-width:460px;margin:0 0 24px}
+  .hero-copy .chips{display:flex;gap:10px;flex-wrap:wrap}
+  .hero-copy .chips span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:8px 14px;border-radius:999px;font-size:13px;color:#cfd8f0}
+  .login-card{position:relative;z-index:1;background:#fff;color:#1a2440;border-radius:18px;padding:30px 28px;box-shadow:0 30px 70px rgba(0,0,0,.45);max-width:400px;width:100%;justify-self:end}
+  .login-card h2{margin:0 0 4px;font-size:21px}
+  .login-card .lead{margin:0 0 22px;color:#64708f;font-size:13px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;font-weight:600;color:#44527a;margin-bottom:6px}
+  .field input{width:100%;padding:12px 14px;border:1.5px solid #d7ddec;border-radius:10px;font-size:14px;color:#1a2440;outline:none;transition:.15s}
+  .field input:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(42,99,214,.15)}
+  .btn{width:100%;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-2));transition:.15s}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)} .btn[disabled]{opacity:.6;cursor:default}
+  .login-err{background:#ffe9e9;color:#b32020;border:1px solid #ffc9c9;padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:16px}
+  .demo-hint{margin-top:18px;background:#f1f4fb;border:1px dashed #c7d0e8;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#4a567a}
+  .demo-hint b{color:#2a63d6}
+  .swap{font-size:13px;color:#64708f;text-align:center;margin:16px 0 0}
+  .swap a{color:var(--brand-2);font-weight:700;cursor:pointer}
+  .swap a:hover{text-decoration:underline}
+  .vle-foot{background:#0b1024;color:#8390b5;text-align:center;font-size:12px;padding:16px}
+
+  /* ══════════ APP (bright dashboard) ══════════ */
+  #app{min-height:100vh;display:flex;flex-direction:column}
+  .topnav{display:flex;align-items:center;gap:8px;background:#fff;border-bottom:1px solid var(--line);padding:0 22px;height:58px;position:sticky;top:0;z-index:10}
+  .topnav .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;margin-right:14px}
+  .topnav .brand .mk{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--brand),var(--accent));display:grid;place-items:center;color:#fff;font-size:14px}
+  .topnav .brand small{display:block;font-size:9px;color:#8893b4;letter-spacing:.5px;font-weight:700}
+  .topnav nav{display:flex;gap:2px;height:100%}
+  .topnav nav button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--muted);font-size:14px;font-family:inherit;padding:0 14px;cursor:pointer;height:100%;transition:.12s}
+  .topnav nav button:hover{color:var(--text)}
+  .topnav nav button.active{color:var(--brand-2);border-bottom-color:var(--brand-2);font-weight:600}
+  .topnav .spacer{flex:1}
+  .topnav .who{display:flex;align-items:center;gap:10px}
+  .topnav .who .meta{font-size:13px;line-height:1.2;text-align:right}
+  .topnav .who .meta b{display:block}
+  .topnav .who .meta span{color:var(--muted);font-size:11px}
+  .topnav .who .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand-2),var(--accent));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+  .logout{background:#f2f4fa;border:1px solid var(--line);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer;font-size:13px}
+  .logout:hover{color:var(--text)}
+  .menu-btn{display:none;background:#f2f4fa;border:1px solid var(--line);color:var(--text);width:36px;height:36px;border-radius:9px;cursor:pointer;font-size:17px}
+
+  .banner{display:flex;align-items:center;gap:10px;background:#e4f6ea;color:#1f7a46;border-bottom:1px solid #cdebd7;padding:11px 24px;font-size:14px}
+  .banner .x{margin-left:auto;background:transparent;border:0;color:#5aa07a;cursor:pointer;font-size:16px}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;max-width:1240px;width:100%;margin:0 auto;padding:24px 22px}
+  .page-title{font-size:22px;font-weight:800;margin:0 0 18px}
+
+  /* stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:26px}
+  .stat{display:flex;align-items:center;gap:14px;padding:20px 18px;border-right:1px solid var(--line);cursor:pointer;transition:background .12s}
+  .stat:hover{background:#f7f9fe}
+  .stat:last-child{border-right:0}
+  .stat .ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;font-size:20px;flex:0 0 44px}
+  .stat .ic.a{background:#fff2d9;color:#e39b1c}
+  .stat .ic.b{background:#e2f0ff;color:#2a63d6}
+  .stat .ic.c{background:#e3f7ee;color:#1aa06d}
+  .stat .ic.d{background:#efe9ff;color:#7b5cff}
+  .stat .n{font-size:26px;font-weight:800;line-height:1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:3px}
+
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .section-head h3{margin:0;font-size:17px;font-weight:700}
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--amber);margin-bottom:18px;flex-wrap:wrap}
+  .tabs button{background:transparent;border:0;color:var(--muted);font-family:inherit;font-size:13.5px;padding:8px 12px;cursor:pointer;border-radius:8px 8px 0 0}
+  .tabs button:hover{color:var(--text)}
+  .tabs button.active{color:var(--text);font-weight:700}
+
+  .course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+  .ccard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .ccard .cover{height:110px;position:relative}
+  .ccard .cover::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.35) 1.5px,transparent 2px);background-size:20px 20px;opacity:.5}
+  .cover.c0{background:linear-gradient(135deg,#6aa7ff,#9ec9ff)}
+  .cover.c1{background:linear-gradient(135deg,#aeb6c6,#d9dde6)}
+  .cover.c2{background:linear-gradient(135deg,#38c48a,#7be0b5)}
+  .cover.c3{background:linear-gradient(135deg,#9b8cff,#c3b8ff)}
+  .cover.c4{background:linear-gradient(135deg,#ffb15c,#ffd39e)}
+  .cover.c5{background:linear-gradient(135deg,#59c7e6,#9fe3f3)}
+  .ccard .cat{position:absolute;left:12px;bottom:-10px;z-index:1;background:var(--amber);color:#5c3c00;font-size:10px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:6px}
+  .ccard .body{padding:18px 15px 15px;display:flex;flex-direction:column;flex:1}
+  .ccard .title{font-size:14px;font-weight:700;line-height:1.3;cursor:pointer}
+  .ccard .title:hover{color:var(--brand-2)}
+  .ccard .title .code{display:block;color:var(--muted);font-size:11px;font-family:ui-monospace,Consolas,monospace;margin-bottom:2px}
+  .ccard .lec{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px;margin:10px 0 12px}
+  .ccard .lec .dot{width:22px;height:22px;border-radius:50%;background:#dfe4ef;display:grid;place-items:center;font-size:10px;color:#6b7596;font-weight:700}
+  .ccard .prog-l{font-size:11px;color:var(--muted);margin-bottom:5px}
+  .ccard .bar{height:7px;border-radius:999px;background:#eceff5;overflow:hidden}
+  .ccard .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand-2),var(--green))}
+  .ccard .view{margin-top:14px;text-align:center;border:1px solid var(--line);color:var(--brand-2);font-weight:600;font-size:13px;padding:9px;border-radius:9px;cursor:pointer;background:#fff}
+  .ccard .view:hover{background:#f3f7ff}
+
+  /* generic light panels/tables for other views */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:22px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 16px;font-size:15px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .pill.lab{background:#efe9ff;color:#6b4dff} .pill.lecture{background:#e2f0ff;color:#2a63d6} .pill.tutorial{background:#e3f7ee;color:#1aa06d}
+  .code{font-family:ui-monospace,Consolas,monospace;color:var(--muted);font-size:12px}
+  .bar{height:8px;border-radius:999px;background:#eceff5;overflow:hidden;min-width:120px}
+  .bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand-2),var(--green))}
+  .due{font-weight:600} .due.soon{color:#c47f12} .due.past{color:var(--red)}
+  .loading{color:var(--muted);padding:30px;text-align:center}
+
+  /* right rail */
+  .rail{display:flex;flex-direction:column;gap:18px}
+  .rail .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px;box-shadow:var(--shadow)}
+  .rail h4{margin:0 0 12px;font-size:14px}
+  .rail .tree{list-style:none;margin:0;padding:0;font-size:13.5px}
+  .rail .tree li{padding:6px 0;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .rail .tree li.head{color:var(--text);font-weight:600}
+  .rail .tree .code{color:var(--brand-2)}
+  .rail .ev{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+  .rail .ev:first-of-type{border-top:0}
+  .rail .ev .cal{width:34px;height:34px;border-radius:8px;background:#fdeaea;color:#d9484d;display:grid;place-items:center;font-size:15px;flex:0 0 34px}
+  .rail .ev .t{font-size:13px;font-weight:600;line-height:1.3}
+  .rail .ev .d{font-size:11.5px;color:var(--muted)}
+  .rail .muted{color:var(--muted);font-size:13px}
+  .rail .tree li[data-action],.rail .ev[data-action]{cursor:pointer}
+  .rail .tree li[data-action]:hover .code,.rail .tree li[data-action]:hover{color:var(--brand-2)}
+  .rail .ev[data-action]:hover .t{color:var(--brand-2)}
+
+  /* course detail */
+  .back{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);color:var(--brand-2);
+    font-size:13px;font-weight:600;padding:8px 13px;border-radius:9px;cursor:pointer;margin-bottom:16px}
+  .back:hover{background:#f3f7ff}
+  .course-hero{border-radius:16px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:22px;background:var(--card)}
+  .course-hero .cover{height:120px;position:relative}
+  .course-hero .cover::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.35) 1.5px,transparent 2px);background-size:22px 22px;opacity:.5}
+  .course-hero .info{padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .course-hero h2{margin:0;font-size:19px}
+  .course-hero .info .code{font-family:ui-monospace,Consolas,monospace;color:var(--muted);font-size:12px}
+  .course-hero .info .right{margin-left:auto;text-align:right}
+  .course-hero .info .right .pc{font-size:22px;font-weight:800;color:var(--green)}
+  .empty{color:var(--muted);font-size:13px;padding:6px 2px}
+
+  @media (max-width:980px){ .layout{grid-template-columns:1fr} .rail{order:2} .stats{grid-template-columns:repeat(2,1fr)} .stat:nth-child(2){border-right:0} }
+  @media (max-width:860px){ .hero{grid-template-columns:1fr;padding:34px 22px} .login-card{justify-self:stretch;max-width:none} .hero-copy h1{font-size:34px} .vle-links{display:none} }
+  @media (max-width:680px){
+    .topnav nav{display:none} .menu-btn{display:inline-flex}
+    .topnav nav.open{display:flex;position:absolute;top:58px;left:0;right:0;background:#fff;flex-direction:column;height:auto;border-bottom:1px solid var(--line);box-shadow:0 10px 24px rgba(24,40,90,.12);z-index:30}
+    .topnav nav.open button{height:46px;justify-content:flex-start;border-bottom:1px solid var(--line);border-left:3px solid transparent;border-bottom-width:1px;padding:0 20px}
+    .topnav nav.open button.active{border-bottom-color:var(--line);border-left-color:var(--brand-2)}
+    .stats{grid-template-columns:1fr} .stat{border-right:0;border-bottom:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN / LANDING ══════════ -->
+<div id="auth">
+  <nav class="vle-nav">
+    <div class="vle-brand"><span class="mk">U</span><span>UniHub<small>VIRTUAL LEARNING ENV</small></span></div>
+    <div class="vle-links"><a>Home</a><a>Courses</a><a>Guides</a><a>Support</a></div>
+    <div class="spacer"></div>
+    <span class="mockbadge">● MOCK PORTAL · DEV ONLY</span>
+  </nav>
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="tag">● WELCOME TO YOUR LEARNING SPACE</span>
+      <h1>The new <span class="u">UniHub</span><br>Virtual Learning Environment</h1>
+      <p>One place for your timetable, grades and assignments. Log in with your
+         student account to continue. (This is a development mock — the data is fake.)</p>
+      <div class="chips"><span>📅 Timetable</span><span>◉ Grades</span><span>✎ Assignments</span></div>
+    </div>
+    <div class="login-card">
+      <!-- LOGIN -->
+      <form id="loginForm" class="authform">
+        <h2>Student Log in</h2>
+        <p class="lead">Sign in to access your dashboard.</p>
+        <div class="login-err hidden" id="loginErr"></div>
+        <div class="field"><label for="u">Student ID or Email</label>
+          <input id="u" name="username" autocomplete="username" placeholder="12345678" required /></div>
+        <div class="field"><label for="p">Password</label>
+          <input id="p" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required /></div>
+        <button class="btn" id="loginBtn" type="submit">Log in</button>
+        <p class="swap">New student? <a id="toReg">Create an account</a></p>
+        <div class="demo-hint"><b>Demo account</b> — ID <b>12345678</b> · password <b>demo123</b></div>
+      </form>
+
+      <!-- REGISTER -->
+      <form id="registerForm" class="authform hidden">
+        <h2>Create your account</h2>
+        <p class="lead">Register a student portal account.</p>
+        <div class="login-err hidden" id="regErr"></div>
+        <div class="field"><label for="rName">Full name</label>
+          <input id="rName" autocomplete="name" placeholder="Nur Aisyah" required /></div>
+        <div class="field"><label for="rId">Student ID</label>
+          <input id="rId" autocomplete="username" placeholder="e.g. 62100123" required /></div>
+        <div class="field"><label for="rEmail">Email</label>
+          <input id="rEmail" type="email" autocomplete="email" placeholder="you@s.unikl.edu.my" required /></div>
+        <div class="field"><label for="rPass">Password</label>
+          <input id="rPass" type="password" autocomplete="new-password" placeholder="at least 6 characters" required /></div>
+        <button class="btn" id="regBtn" type="submit">Create account</button>
+        <p class="swap">Already have an account? <a id="toLogin">Log in</a></p>
+      </form>
+    </div>
+  </section>
+  <footer class="vle-foot">UniHub VLE (development mock) · not affiliated with any institution · all data is fictional</footer>
+</div>
+
+<!-- ══════════ APP (bright dashboard) ══════════ -->
+<div id="app" class="hidden">
+  <header class="topnav">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="brand"><span class="mk">U</span><span>UniHub<small>VLE · MOCK</small></span></div>
+    <nav id="nav">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="courses">My Courses</button>
+      <button data-view="timetable">Timetable</button>
+      <button data-view="grades">Grades</button>
+      <button data-view="assignments">Assignments</button>
+    </nav>
+    <div class="spacer"></div>
+    <span class="mockbadge">● MOCK</span>
+    <div class="who">
+      <div class="meta"><b id="whoName">—</b><span id="whoId">—</span></div>
+      <div class="avatar" id="whoAvatar">?</div>
+      <button class="logout" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner">
+    🎓 Welcome to your new UniHub VLE! We've refreshed your learning space to be brighter and easier to use.
+    <button class="x" onclick="document.getElementById('banner').remove()">×</button>
+  </div>
+
+  <div class="layout">
+    <main id="view"><div class="loading">Loading…</div></main>
+    <aside class="rail" id="rail"></aside>
+  </div>
+</div>
+
+<script>
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const KEY = 'unihub_mock_token';
+let TOKEN = localStorage.getItem(KEY) || null;
+let courseFilter = 'all';
+let currentCourse = null;
+
+async function api(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(TOKEN) headers.Authorization = 'Bearer '+TOKEN;
+  const r = await fetch(path, Object.assign({}, opts, {headers}));
+  if(r.status===401){ logout(); throw new Error('Session expired — please log in again'); }
+  if(!r.ok) throw new Error(path+' → '+r.status);
+  return r.json();
+}
+
+/* ── Auth ── */
+function showAuth(){ $('#auth').classList.remove('hidden'); $('#app').classList.add('hidden'); }
+function showApp(){ $('#auth').classList.add('hidden'); $('#app').classList.remove('hidden'); }
+
+$('#loginForm').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const btn=$('#loginBtn'), err=$('#loginErr');
+  err.classList.add('hidden'); btn.disabled=true; btn.textContent='Signing in…';
+  try{
+    const r=await fetch('/api/portal/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:$('#u').value,password:$('#p').value})});
+    const data=await r.json();
+    if(!r.ok||!data.success) throw new Error(data.message||'Login failed');
+    TOKEN=data.token; localStorage.setItem(KEY,TOKEN); cache.ready=false;
+    showApp(); setActive('dashboard'); render('dashboard');
+  }catch(ex){ err.textContent=ex.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; btn.textContent='Log in'; }
+});
+function logout(){
+  if(TOKEN) fetch('/api/portal/logout',{method:'POST',headers:{Authorization:'Bearer '+TOKEN}}).catch(()=>{});
+  TOKEN=null; localStorage.removeItem(KEY); cache.ready=false; $('#p').value=''; showAuth();
+}
+$('#logoutBtn').addEventListener('click', logout);
+
+// Toggle between Log in and Register
+$('#toReg').addEventListener('click',()=>{ $('#loginForm').classList.add('hidden'); $('#registerForm').classList.remove('hidden'); $('#regErr').classList.add('hidden'); });
+$('#toLogin').addEventListener('click',()=>{ $('#registerForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden'); $('#loginErr').classList.add('hidden'); });
+
+// Register a new portal account (auto-logs in on success)
+$('#registerForm').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const btn=$('#regBtn'), err=$('#regErr');
+  err.classList.add('hidden'); btn.disabled=true; btn.textContent='Creating…';
+  try{
+    const r=await fetch('/api/portal/register',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ fullname:$('#rName').value, student_id:$('#rId').value, email:$('#rEmail').value, password:$('#rPass').value })});
+    const data=await r.json();
+    if(!r.ok||!data.success) throw new Error(data.message||'Registration failed');
+    TOKEN=data.token; localStorage.setItem(KEY,TOKEN); cache.ready=false;
+    $('#rPass').value='';
+    showApp(); setActive('dashboard'); render('dashboard');
+  }catch(ex){ err.textContent=ex.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; btn.textContent='Create account'; }
+});
+
+/* ── Data ── */
+const cache={};
+async function load(){
+  if(cache.ready) return cache;
+  const [profile,courses,timetable,grades,assignments]=await Promise.all([
+    api('/api/portal/profile'), api('/api/portal/courses'), api('/api/portal/timetable'),
+    api('/api/portal/grades'), api('/api/portal/assignments'),
+  ]);
+  Object.assign(cache,{profile:profile.student, courses:courses.courses, summary:courses.summary,
+    timetable:timetable.slots, semester:timetable.semester, grades:grades.courses,
+    assignments:assignments.assignments, ready:true});
+  return cache;
+}
+const dueClass=d=>{const n=Math.ceil((new Date(d)-new Date())/86400000);return n<0?'past':n<=7?'soon':'';};
+const timeFmt=t=>t.slice(0,5);
+const fmtDate=d=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+
+/* ── Course card ── */
+function courseCard(c){
+  const init=c.lecturer.split(' ').map(w=>w[0]).join('').slice(0,2);
+  return `<div class="ccard">
+    <div class="cover c${c.color}"><span class="cat">${esc(c.category)}</span></div>
+    <div class="body">
+      <div class="title" data-action="course" data-code="${esc(c.code)}"><span class="code">${esc(c.code)}</span>${esc(c.name)}</div>
+      <div class="lec"><span class="dot">${esc(init)}</span>${esc(c.lecturer)}</div>
+      <div class="prog-l">${c.activities_done} of ${c.activities_total} activities · ${c.progress}%</div>
+      <div class="bar"><i style="width:${c.progress}%"></i></div>
+      <div class="view" data-action="course" data-code="${esc(c.code)}">View Course</div>
+    </div></div>`;
+}
+function filteredCourses(d){
+  if(courseFilter==='progress') return d.courses.filter(c=>c.progress>0&&c.progress<100);
+  if(courseFilter==='past') return d.courses.filter(c=>c.progress>=100);
+  if(courseFilter==='future') return d.courses.filter(c=>c.progress===0);
+  return d.courses;
+}
+
+/* ── Views ── */
+function vDashboard(d){
+  const s=d.summary;
+  return `<h1 class="page-title">Hi, ${esc(d.profile.fullname.split(' ')[0])}! 👋</h1>
+    <div class="stats">
+      <div class="stat" data-action="nav" data-view="courses" title="View my courses"><div class="ic a">▦</div><div><div class="n">${s.courses_enrolled}</div><div class="l">Courses Enrolled</div></div></div>
+      <div class="stat" data-action="nav" data-view="courses" title="View my courses"><div class="ic b">✓</div><div><div class="n">${s.courses_completed}</div><div class="l">Courses Completed</div></div></div>
+      <div class="stat" data-action="nav" data-view="assignments" title="View assignments"><div class="ic c">◉</div><div><div class="n">${s.activities_completed}</div><div class="l">Activities Completed</div></div></div>
+      <div class="stat" data-action="nav" data-view="assignments" title="View assignments"><div class="ic d">≣</div><div><div class="n">${s.activities_due}</div><div class="l">Activities Due</div></div></div>
+    </div>
+    <div class="section-head"><h3>Course overview</h3></div>
+    <div class="tabs">
+      <button data-action="filter" data-f="all" class="${courseFilter==='all'?'active':''}">All</button>
+      <button data-action="filter" data-f="progress" class="${courseFilter==='progress'?'active':''}">In progress</button>
+      <button data-action="filter" data-f="future" class="${courseFilter==='future'?'active':''}">Future</button>
+      <button data-action="filter" data-f="past" class="${courseFilter==='past'?'active':''}">Past</button>
+    </div>
+    <div class="course-grid">${filteredCourses(d).map(courseCard).join('')||'<p class="muted">No courses in this view.</p>'}</div>`;
+}
+function vCourses(d){
+  return `<h1 class="page-title">My Courses</h1>
+    <div class="course-grid">${d.courses.map(courseCard).join('')}</div>`;
+}
+function vTimetable(d){
+  const rows=[...d.timetable].sort((a,b)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time));
+  return `<h1 class="page-title">Timetable</h1>
+    <div class="panel"><table><thead><tr><th>Day</th><th>Time</th><th>Course</th><th>Venue</th><th>Lecturer</th><th>Type</th></tr></thead><tbody>
+    ${rows.map(s=>`<tr><td><b>${DAYS[s.day_of_week]}</b></td><td>${timeFmt(s.start_time)}–${timeFmt(s.end_time)}</td>
+      <td><span class="code">${esc(s.course_code)}</span><br>${esc(s.course_name)}</td>
+      <td>${esc(s.venue)}</td><td>${esc(s.lecturer)}</td>
+      <td><span class="pill ${esc(s.slot_type)}">${esc(s.slot_type)}</span></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function vGrades(d){
+  return `<h1 class="page-title">Grades</h1>
+    ${d.grades.map(c=>`<div class="panel">
+      <h3>${esc(c.course_name)} <span class="code">${esc(c.course_code)}</span> · <span style="color:var(--green)">${c.total_percentage}%</span>
+      <small style="color:var(--muted);font-weight:400">(${c.credit_hours} cr)</small></h3>
+      <table><thead><tr><th>Component</th><th>Weight</th><th>Score</th><th style="width:40%">Progress</th></tr></thead><tbody>
+      ${c.assessments.map(a=>{const p=Math.round(a.score/a.max_score*100);
+        return `<tr><td>${esc(a.name)}</td><td>${a.weight}%</td><td>${a.score} / ${a.max_score}</td>
+        <td><div class="bar"><i style="width:${p}%"></i></div></td></tr>`;}).join('')}
+      </tbody></table></div>`).join('')}`;
+}
+function vAssignments(d){
+  return `<h1 class="page-title">Assignments</h1>
+    <div class="panel"><table><thead><tr><th>Title</th><th>Course</th><th>Description</th><th>Due</th></tr></thead><tbody>
+    ${d.assignments.map(a=>`<tr><td><b>${esc(a.title)}</b></td>
+      <td><span class="code">${esc(a.course_code)}</span><br>${esc(a.course)}</td>
+      <td style="color:var(--muted);max-width:320px">${esc(a.description)}</td>
+      <td class="due ${dueClass(a.due_date)}">${esc(a.due_date)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function vCourse(d){
+  const c=d.courses.find(x=>x.code===currentCourse);
+  if(!c) return `<button class="back" data-action="back">← Back to My Courses</button><p class="empty">Course not found.</p>`;
+  const grade=d.grades.find(g=>g.course_code===c.code);
+  const slots=[...d.timetable].filter(s=>s.course_code===c.code).sort((a,b)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time));
+  const asgs=[...d.assignments].filter(a=>a.course_code===c.code).sort((a,b)=>a.due_date.localeCompare(b.due_date));
+  return `<button class="back" data-action="back">← Back to My Courses</button>
+    <div class="course-hero">
+      <div class="cover c${c.color}"></div>
+      <div class="info">
+        <div><div class="code">${esc(c.code)} · ${esc(c.category)}</div><h2>${esc(c.name)}</h2>
+          <div class="lec" style="margin:8px 0 0"><span class="dot">${esc(c.lecturer.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>${esc(c.lecturer)}</div></div>
+        <div class="right"><div class="pc">${c.progress}%</div><div class="l" style="color:var(--muted);font-size:12px">${c.activities_done}/${c.activities_total} activities</div></div>
+      </div>
+    </div>
+    <div class="panel"><h3>Assignments</h3>${asgs.length?`<table><thead><tr><th>Title</th><th>Description</th><th>Due</th></tr></thead><tbody>
+      ${asgs.map(a=>`<tr><td><b>${esc(a.title)}</b></td><td style="color:var(--muted);max-width:360px">${esc(a.description)}</td>
+        <td class="due ${dueClass(a.due_date)}">${esc(a.due_date)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">No assignments for this course.</p>'}</div>
+    <div class="panel"><h3>Grade breakdown</h3>${grade?`<table><thead><tr><th>Component</th><th>Weight</th><th>Score</th><th style="width:38%">Progress</th></tr></thead><tbody>
+      ${grade.assessments.map(a=>{const p=Math.round(a.score/a.max_score*100);
+        return `<tr><td>${esc(a.name)}</td><td>${a.weight}%</td><td>${a.score} / ${a.max_score}</td><td><div class="bar"><i style="width:${p}%"></i></div></td></tr>`;}).join('')}
+      <tr><td colspan="3"><b>Current total</b></td><td><b style="color:var(--green)">${grade.total_percentage}%</b></td></tr></tbody></table>`:'<p class="empty">No grades recorded yet.</p>'}</div>
+    <div class="panel"><h3>Class schedule</h3>${slots.length?`<table><thead><tr><th>Day</th><th>Time</th><th>Venue</th><th>Type</th></tr></thead><tbody>
+      ${slots.map(s=>`<tr><td><b>${DAYS[s.day_of_week]}</b></td><td>${timeFmt(s.start_time)}–${timeFmt(s.end_time)}</td>
+        <td>${esc(s.venue)}</td><td><span class="pill ${esc(s.slot_type)}">${esc(s.slot_type)}</span></td></tr>`).join('')}</tbody></table>`:'<p class="empty">No scheduled classes for this course.</p>'}</div>`;
+}
+const VIEWS={dashboard:vDashboard,courses:vCourses,course:vCourse,timetable:vTimetable,grades:vGrades,assignments:vAssignments};
+
+function renderRail(d){
+  const upcoming=[...d.assignments].sort((a,b)=>a.due_date.localeCompare(b.due_date)).slice(0,3);
+  $('#rail').innerHTML=`
+    <div class="box"><h4>Navigation</h4>
+      <ul class="tree">
+        <li class="head" data-action="nav" data-view="dashboard">▾ Dashboard</li>
+        <li data-action="nav" data-view="dashboard">🏠 Site home</li>
+        <li data-action="nav" data-view="assignments">📄 Activities</li>
+        <li class="head" data-action="nav" data-view="courses">▾ My courses</li>
+        ${d.courses.slice(0,5).map(c=>`<li data-action="course" data-code="${esc(c.code)}"><span class="code">${esc(c.code)}</span></li>`).join('')}
+      </ul>
+    </div>
+    <div class="box"><h4>Upcoming events</h4>
+      ${upcoming.length?upcoming.map(a=>`<div class="ev" data-action="course" data-code="${esc(a.course_code)}"><div class="cal">📌</div>
+        <div><div class="t">${esc(a.title)}</div><div class="d">${fmtDate(a.due_date)} · ${esc(a.course_code)}</div></div></div>`).join(''):'<div class="muted">No upcoming events.</div>'}
+    </div>
+    <div class="box"><h4>Latest badges</h4><div class="muted">You have no badges to display.</div></div>`;
+}
+
+function setActive(view){
+  // 'course' detail isn't a nav item — keep "My Courses" highlighted for it.
+  const navView = view==='course' ? 'courses' : view;
+  [...document.querySelectorAll('#nav button')].forEach(x=>x.classList.toggle('active',x.dataset.view===navView));
+}
+async function render(view){
+  const el=$('#view');
+  try{
+    const d=await load();
+    $('#whoName').textContent=d.profile.fullname;
+    $('#whoId').textContent='ID '+d.profile.student_id;
+    $('#whoAvatar').textContent=d.profile.fullname.split(' ').map(w=>w[0]).join('').slice(0,2);
+    el.innerHTML=VIEWS[view](d);
+    el.scrollTo?.(0,0); window.scrollTo(0,0);
+    renderRail(d);
+  }catch(err){ el.innerHTML=`<div class="loading">Could not load data.<br><small>${esc(err.message)}</small></div>`; }
+}
+function go(view){ setActive(view); render(view); }
+function openCourse(code){ currentCourse=code; setActive('course'); render('course'); }
+
+// Top-nav tabs
+$('#nav').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('#nav').classList.remove('open');
+  go(b.dataset.view);
+});
+
+// One delegated handler for everything rendered inside the main view
+$('#view').addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]'); if(!el) return;
+  const a=el.dataset.action;
+  if(a==='filter'){ courseFilter=el.dataset.f; render('dashboard'); }
+  else if(a==='course'){ openCourse(el.dataset.code); }
+  else if(a==='nav'){ go(el.dataset.view); }
+  else if(a==='back'){ go('courses'); }
+});
+
+// Right-rail clicks (course codes, events, navigation links)
+$('#rail').addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]'); if(!el) return;
+  if(el.dataset.action==='course') openCourse(el.dataset.code);
+  else if(el.dataset.action==='nav') go(el.dataset.view);
+});
+
+// Mobile menu toggle
+$('#menuBtn').addEventListener('click',()=>$('#nav').classList.toggle('open'));
+
+// Landing-page nav links focus the login box so they do something useful
+document.querySelectorAll('.vle-links a').forEach(a=>a.addEventListener('click',ev=>{ ev.preventDefault(); $('#u').focus(); }));
+
+/* ── Boot ── */
+(async function boot(){
+  if(!TOKEN){ showAuth(); return; }
+  try{ await api('/api/portal/me'); showApp(); setActive('dashboard'); render('dashboard'); }
+  catch(_){}
+})();
+</script>
+</body>
+</html>

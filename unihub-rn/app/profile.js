@@ -122,9 +122,18 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* AI Tools */}
+        <Text style={styles.groupTitle}>AI Tools</Text>
+        <View style={styles.settingsGroup}>
+          <SettingItem icon="sparkles" iconColor="#7b5ea7" label="Smart Study Planner" sub="AI schedule around your classes & deadlines"
+            onPress={() => router.push('/study-planner')} />
+        </View>
+
         {/* Integrations */}
         <Text style={styles.groupTitle}>Integrations</Text>
         <View style={styles.settingsGroup}>
+          <SettingItem icon="school" iconColor="#7b5ea7" label="Student Portal" sub="Connect & sync timetable, grades, assignments"
+            onPress={() => router.push('/portal')} />
           <SettingItem icon="document-text" iconColor="#4f8ef7" label="PDF Schedule" sub="Upload academic calendar PDF"
             onPress={() => router.push('/pdf-upload')} />
           <SettingItem icon="calendar" iconColor="#38c9a0" label="Google Calendar" sub={calSync ? 'Synced' : 'Not connected'}

@@ -91,6 +91,8 @@ export default function RootLayout() {
         <Tabs.Screen name="login"      options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="register"   options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="pdf-upload" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="portal"     options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="study-planner" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
     </SafeAreaProvider>
   );
