@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>UniHub VLE — Mock Portal</title>
+<title>UniKL VLE — Mock Portal</title>
 <style>
   :root{
     --bg:#eef1f7; --card:#ffffff; --line:#e6eaf2; --text:#1e2748; --muted:#6b7596;
-    --brand:#1f3c88; --brand-2:#2a63d6; --accent:#19a7e6;
+    --brand:#07367e; --brand-2:#1b5fc4; --accent:#ef8a1b;
+    --gold:#f6b40a; --orange:#e8720c;
     --green:#1aa06d; --amber:#f0a429; --red:#e5484d; --radius:14px;
     --shadow:0 2px 10px rgba(24,40,90,.06);
   }
@@ -21,19 +22,19 @@
   #auth{min-height:100vh;display:flex;flex-direction:column;background:#0f1220;color:#e8eaf3}
   .vle-nav{display:flex;align-items:center;gap:22px;padding:14px 32px;background:#fff;color:#12203f;box-shadow:0 1px 0 rgba(0,0,0,.08)}
   .vle-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.3px}
-  .vle-brand .mk{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--accent));display:grid;place-items:center;color:#fff}
+  .vle-brand .mk{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--orange));display:grid;place-items:center;color:#07367e;font-weight:900}
   .vle-brand small{display:block;font-size:10px;font-weight:600;color:#5b6b8c;letter-spacing:1px}
   .vle-links{display:flex;gap:20px;font-size:14px;color:#36456b;font-weight:500}
   .vle-links a:hover{color:var(--brand-2)}
   .vle-nav .spacer{flex:1}
   .mockbadge{font-size:11px;font-weight:700;letter-spacing:.3px;color:#6a4a00;background:#ffe3a3;padding:5px 12px;border-radius:999px;border:1px solid #f4cf7a}
   .hero{flex:1;position:relative;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:40px;padding:60px 48px;overflow:hidden;
-    background:radial-gradient(1200px 600px at 10% -10%,#15337a 0%,transparent 60%),radial-gradient(1000px 500px at 110% 120%,#0b2a66 0%,transparent 55%),linear-gradient(135deg,#0b1430,#0f1220)}
-  .hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(25,167,230,.25) 1px,transparent 1.4px);background-size:26px 26px;opacity:.25;pointer-events:none}
+    background:radial-gradient(1200px 600px at 8% -10%,rgba(239,138,27,.35) 0%,transparent 55%),radial-gradient(1000px 520px at 112% 120%,rgba(246,180,10,.22) 0%,transparent 55%),linear-gradient(135deg,#072a63,#0a1b3f)}
+  .hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(246,180,10,.30) 1px,transparent 1.4px);background-size:26px 26px;opacity:.3;pointer-events:none}
   .hero-copy{position:relative;z-index:1}
-  .hero-copy .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:14px}
+  .hero-copy .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--gold);margin-bottom:14px}
   .hero-copy h1{font-size:46px;line-height:1.05;margin:0 0 16px;font-weight:800}
-  .hero-copy h1 .u{color:var(--accent)}
+  .hero-copy h1 .u{color:var(--gold)}
   .hero-copy p{color:#b8c2e0;font-size:16px;max-width:460px;margin:0 0 24px}
   .hero-copy .chips{display:flex;gap:10px;flex-wrap:wrap}
   .hero-copy .chips span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:8px 14px;border-radius:999px;font-size:13px;color:#cfd8f0}
@@ -44,7 +45,7 @@
   .field label{display:block;font-size:12px;font-weight:600;color:#44527a;margin-bottom:6px}
   .field input{width:100%;padding:12px 14px;border:1.5px solid #d7ddec;border-radius:10px;font-size:14px;color:#1a2440;outline:none;transition:.15s}
   .field input:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(42,99,214,.15)}
-  .btn{width:100%;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-2));transition:.15s}
+  .btn{width:100%;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--orange),var(--gold));transition:.15s}
   .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)} .btn[disabled]{opacity:.6;cursor:default}
   .login-err{background:#ffe9e9;color:#b32020;border:1px solid #ffc9c9;padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:16px}
   .demo-hint{margin-top:18px;background:#f1f4fb;border:1px dashed #c7d0e8;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#4a567a}
@@ -58,7 +59,7 @@
   #app{min-height:100vh;display:flex;flex-direction:column}
   .topnav{display:flex;align-items:center;gap:8px;background:#fff;border-bottom:1px solid var(--line);padding:0 22px;height:58px;position:sticky;top:0;z-index:10}
   .topnav .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;margin-right:14px}
-  .topnav .brand .mk{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--brand),var(--accent));display:grid;place-items:center;color:#fff;font-size:14px}
+  .topnav .brand .mk{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--gold),var(--orange));display:grid;place-items:center;color:#07367e;font-size:14px;font-weight:900}
   .topnav .brand small{display:block;font-size:9px;color:#8893b4;letter-spacing:.5px;font-weight:700}
   .topnav nav{display:flex;gap:2px;height:100%}
   .topnav nav button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--muted);font-size:14px;font-family:inherit;padding:0 14px;cursor:pointer;height:100%;transition:.12s}
@@ -186,7 +187,7 @@
 <!-- ══════════ LOGIN / LANDING ══════════ -->
 <div id="auth">
   <nav class="vle-nav">
-    <div class="vle-brand"><span class="mk">U</span><span>UniHub<small>VIRTUAL LEARNING ENV</small></span></div>
+    <div class="vle-brand"><span class="mk">U</span><span>UniKL<small>VIRTUAL LEARNING ENV</small></span></div>
     <div class="vle-links"><a>Home</a><a>Courses</a><a>Guides</a><a>Support</a></div>
     <div class="spacer"></div>
     <span class="mockbadge">● MOCK PORTAL · DEV ONLY</span>
@@ -194,7 +195,7 @@
   <section class="hero">
     <div class="hero-copy">
       <span class="tag">● WELCOME TO YOUR LEARNING SPACE</span>
-      <h1>The new <span class="u">UniHub</span><br>Virtual Learning Environment</h1>
+      <h1>The new <span class="u">UniKL</span><br>Virtual Learning Environment</h1>
       <p>One place for your timetable, grades and assignments. Log in with your
          student account to continue. (This is a development mock — the data is fake.)</p>
       <div class="chips"><span>📅 Timetable</span><span>◉ Grades</span><span>✎ Assignments</span></div>
@@ -232,14 +233,14 @@
       </form>
     </div>
   </section>
-  <footer class="vle-foot">UniHub VLE (development mock) · not affiliated with any institution · all data is fictional</footer>
+  <footer class="vle-foot">UniKL VLE (development mock) · not affiliated with any institution · all data is fictional</footer>
 </div>
 
 <!-- ══════════ APP (bright dashboard) ══════════ -->
 <div id="app" class="hidden">
   <header class="topnav">
     <button class="menu-btn" id="menuBtn">☰</button>
-    <div class="brand"><span class="mk">U</span><span>UniHub<small>VLE · MOCK</small></span></div>
+    <div class="brand"><span class="mk">U</span><span>UniKL<small>VLE · MOCK</small></span></div>
     <nav id="nav">
       <button data-view="dashboard" class="active">Dashboard</button>
       <button data-view="courses">My Courses</button>
@@ -257,7 +258,7 @@
   </header>
 
   <div class="banner" id="banner">
-    🎓 Welcome to your new UniHub VLE! We've refreshed your learning space to be brighter and easier to use.
+    🎓 Welcome to your new UniKL VLE! We've refreshed your learning space to be brighter and easier to use.
     <button class="x" onclick="document.getElementById('banner').remove()">×</button>
   </div>
 
@@ -271,7 +272,7 @@
 const $ = (s,r=document)=>r.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const KEY = 'unihub_mock_token';
+const KEY = 'unikl_vle_mock_token';
 let TOKEN = localStorage.getItem(KEY) || null;
 let courseFilter = 'all';
 let currentCourse = null;

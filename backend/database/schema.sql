@@ -154,6 +154,19 @@ CREATE TABLE IF NOT EXISTS gpa_assessments (
   FOREIGN KEY (user_id)       REFERENCES users(id)        ON DELETE CASCADE
 );
 
+-- ─────────────────────────────────────────
+-- GOOGLE LINKS (Google Calendar sync)
+-- ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS google_links (
+  user_id         INT          PRIMARY KEY,
+  google_email    VARCHAR(255) DEFAULT NULL,
+  refresh_token   TEXT         NOT NULL,         -- AES-GCM encrypted by the backend
+  calendar_id     VARCHAR(255) DEFAULT NULL,     -- the "UniHub" calendar in their account
+  connected_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  last_synced_at  TIMESTAMP    NULL DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX idx_timetable_user_day ON timetable_slots (user_id, day_of_week);
 CREATE INDEX idx_gpa_courses_user   ON gpa_courses (user_id);
 CREATE INDEX idx_gpa_assess_course  ON gpa_assessments (gpa_course_id);

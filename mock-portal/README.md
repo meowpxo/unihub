@@ -1,4 +1,4 @@
-# UniHub Mock Portal
+# UniKL VLE Mock Portal
 
 A **local, fake** stand-in for the UniKL / Moodle learning portal, for developing
 and testing UniHub's sync feature without live portal access.

@@ -93,6 +93,7 @@ export default function RootLayout() {
         <Tabs.Screen name="pdf-upload" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="portal"     options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="study-planner" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="google-calendar" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
     </SafeAreaProvider>
   );

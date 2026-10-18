@@ -44,7 +44,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [notifs, setNotifs]   = useState(true);
   const [clash, setClash]     = useState(true);
-  const [calSync, setCalSync] = useState(false);
+  const [gcal, setGcal]       = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -60,6 +60,7 @@ export default function ProfileScreen() {
       ]);
       setStats(dashData.stats);
       setCgpa(gpaData.cgpa);
+      apiFetch('/google/status').then(setGcal).catch(() => setGcal(null));
     } catch (e) {
       console.warn('Profile load error:', e.message);
     } finally {
@@ -136,8 +137,9 @@ export default function ProfileScreen() {
             onPress={() => router.push('/portal')} />
           <SettingItem icon="document-text" iconColor="#4f8ef7" label="PDF Schedule" sub="Upload academic calendar PDF"
             onPress={() => router.push('/pdf-upload')} />
-          <SettingItem icon="calendar" iconColor="#38c9a0" label="Google Calendar" sub={calSync ? 'Synced' : 'Not connected'}
-            hasToggle toggleVal={calSync} onToggle={() => setCalSync(v => !v)} />
+          <SettingItem icon="calendar" iconColor="#38c9a0" label="Google Calendar"
+            sub={gcal?.connected ? `Connected · ${gcal.google_email || 'Google account'}` : 'Not connected'}
+            onPress={() => router.push('/google-calendar')} />
         </View>
 
         {/* Notifications */}

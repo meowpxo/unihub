@@ -1,5 +1,5 @@
 /**
- * server.js — UniHub mock learning portal (development only).
+ * server.js — UniKL VLE mock learning portal (development only).
  *
  * This is a LOCAL FAKE of the UniKL/Moodle portal. It returns invented student
  * data so you can build and test UniHub's sync feature without live portal
@@ -94,7 +94,7 @@ app.all('/webservice/rest/server.php', (req, res) => {
 
     case 'core_webservice_get_site_info':
       return res.json({
-        sitename: 'UniHub Mock Portal',
+        sitename: 'UniKL VLE Mock Portal',
         username: STUDENT.student_id,
         fullname: STUDENT.fullname,
         userid: STUDENT.id,
@@ -217,12 +217,12 @@ app.get('/api/portal/grades', (req, res) => {
 });
 
 // ── Health + index ────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'unihub-mock-portal' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'unikl-vle-mock-portal' }));
 
 app.get('/info', (_req, res) => {
   res.type('text/plain').send(
     [
-      'UniHub Mock Portal (development only — not the real UniKL portal)',
+      'UniKL VLE Mock Portal (development only — not the real UniKL portal)',
       '',
       'Moodle REST:',
       `  /webservice/rest/server.php?wstoken=dev-token&wsfunction=mod_assign_get_assignments&moodlewsrestformat=json`,
@@ -237,7 +237,7 @@ app.get('/info', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n  UniHub MOCK portal running at http://localhost:${PORT}`);
+  console.log(`\n  UniKL VLE MOCK portal running at http://localhost:${PORT}`);
   console.log(`  (development fake — not the real UniKL portal)\n`);
   if (REQUIRED_TOKEN) console.log(`  Token required: ${REQUIRED_TOKEN}\n`);
 });

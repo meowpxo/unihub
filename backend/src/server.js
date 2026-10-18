@@ -15,6 +15,7 @@ const tasksRoutes    = require('./routes/tasks');
 const moodleRoutes   = require('./routes/moodle');
 const portalRoutes   = require('./routes/portal');
 const aiRoutes       = require('./routes/ai');
+const googleRoutes   = require('./routes/google');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +63,7 @@ app.use('/api/tasks',    tasksRoutes);
 app.use('/api/moodle',   moodleRoutes);
 app.use('/api/portal-link', portalRoutes);
 app.use('/api/ai',          aiRoutes);
+app.use('/api/google',      googleRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────
 app.use((_req, res) => {
