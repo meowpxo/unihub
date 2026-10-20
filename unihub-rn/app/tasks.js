@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { syncNotifications } from '../constants/notifications';
 import { Ionicons } from '@expo/vector-icons';
 
 const FILTERS       = ['All', 'assignment', 'lab', 'study', 'fyp', 'quiz', 'other'];
@@ -38,6 +39,7 @@ export default function TasksScreen() {
       const params = filter !== 'All' ? `?type=${filter}` : '';
       const data = await apiFetch(`/tasks${params}`);
       setTasks(data.tasks || []);
+      syncNotifications();
     } catch (e) {
       console.warn('Tasks load error:', e.message);
     } finally {
@@ -76,6 +78,7 @@ export default function TasksScreen() {
     setTasks(ts => ts.map(t => t.id === id ? { ...t, is_done: t.is_done ? 0 : 1 } : t));
     try {
       await apiFetch(`/tasks/${id}/toggle`, { method: 'PATCH' });
+      syncNotifications();
     } catch (_) { load(); }
   }
 
@@ -94,6 +97,7 @@ export default function TasksScreen() {
             try {
               await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
               setTasks(ts => ts.filter(t => t.id !== id));
+              syncNotifications();
             } catch (e) { Alert.alert('Error', e.message); }
           },
         },

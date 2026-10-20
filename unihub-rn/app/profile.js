@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { getNotificationPrefs, setNotificationPref, clearNotifications } from '../constants/notifications';
 import { Ionicons } from '@expo/vector-icons';
 
 function SettingItem({ icon, iconColor, iconBg, label, sub, hasToggle, toggleVal, onToggle, danger, onPress }) {
@@ -54,6 +55,10 @@ export default function ProfileScreen() {
       const raw = await AsyncStorage.getItem('unihub_user');
       if (raw) setUser(JSON.parse(raw));
 
+      const prefs = await getNotificationPrefs();
+      setNotifs(prefs.deadlines);
+      setClash(prefs.clash);
+
       const [dashData, gpaData] = await Promise.all([
         apiFetch('/schedule/dashboard'),
         apiFetch('/gpa/summary'),
@@ -70,6 +75,11 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  function toggleNotifPref(name, value, setter) {
+    setter(value);
+    setNotificationPref(name, value).catch(e => console.warn('Notification pref error:', e.message));
+  }
+
   async function handleLogout() {
     Alert.alert('Log Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -77,6 +87,7 @@ export default function ProfileScreen() {
         text: 'Log Out', style: 'destructive',
         onPress: async () => {
           try { await apiFetch('/auth/logout', { method: 'POST' }); } catch {}
+          await clearNotifications().catch(() => {});
           await AsyncStorage.removeItem('unihub_token');
           await AsyncStorage.removeItem('unihub_user');
           router.replace('/login');
@@ -146,9 +157,9 @@ export default function ProfileScreen() {
         <Text style={styles.groupTitle}>Notifications</Text>
         <View style={styles.settingsGroup}>
           <SettingItem icon="notifications" iconColor="#f0a500" label="Deadline Reminders" sub="Push alerts for upcoming tasks"
-            hasToggle toggleVal={notifs} onToggle={() => setNotifs(v => !v)} />
+            hasToggle toggleVal={notifs} onToggle={v => toggleNotifPref('deadlines', v, setNotifs)} />
           <SettingItem icon="flash" iconColor="#e8604c" label="Clash Alerts" sub="Warn when multiple deadlines clash"
-            hasToggle toggleVal={clash} onToggle={() => setClash(v => !v)} />
+            hasToggle toggleVal={clash} onToggle={v => toggleNotifPref('clash', v, setClash)} />
         </View>
 
         {/* Account */}

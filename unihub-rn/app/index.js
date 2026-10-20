@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
+import { syncNotifications } from '../constants/notifications';
 import { Ionicons } from '@expo/vector-icons';
 
 const PRI_COLOR  = { High: Colors.accent3, Med: Colors.warn, Low: Colors.accent4 };
@@ -96,6 +97,7 @@ export default function DashboardScreen() {
       setClash(clashData.clashes || []);
       setGpa(gpaData.cgpa);
       setMoodleStatus(moodleData);
+      syncNotifications();
     } catch (e) {
       console.warn('Dashboard load error:', e.message);
     } finally {

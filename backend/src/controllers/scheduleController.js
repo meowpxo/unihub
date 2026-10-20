@@ -98,7 +98,7 @@ async function getSavedEvents(req, res) {
 async function getClash(req, res) {
   try {
     const [tasks] = await db.query(
-      `SELECT id, title, due_date AS date, 'task' AS source,
+      `SELECT id, title, DATE_FORMAT(due_date, '%Y-%m-%d') AS date, 'task' AS source,
               priority, course, task_type
        FROM tasks
        WHERE user_id = ? AND is_done = 0
@@ -108,7 +108,7 @@ async function getClash(req, res) {
     );
 
     const [events] = await db.query(
-      `SELECT id, title, event_date AS date, 'event' AS source, event_type
+      `SELECT id, title, DATE_FORMAT(event_date, '%Y-%m-%d') AS date, 'event' AS source, event_type
        FROM schedule_events
        WHERE user_id = ?
          AND event_date >= CURDATE()
@@ -212,13 +212,16 @@ async function getDashboard(req, res) {
 }
 
 // ── POST /api/schedule/timetable/bulk ────────────────────────────────────────
-// Save an array of timetable slots extracted from a PDF
+// Save an array of timetable slots extracted from a PDF, replacing the user's
+// existing timetable so only the newly parsed schedule is shown.
 async function bulkAddTimetableSlots(req, res) {
+  const { slots } = req.body;
+  if (!Array.isArray(slots) || slots.length === 0) {
+    return res.status(400).json({ success: false, message: 'slots array is required' });
+  }
+
+  const conn = await db.getConnection();
   try {
-    const { slots } = req.body;
-    if (!Array.isArray(slots) || slots.length === 0) {
-      return res.status(400).json({ success: false, message: 'slots array is required' });
-    }
 
     const rows = slots.map((s, idx) => [
       req.user.id,
@@ -233,18 +236,24 @@ async function bulkAddTimetableSlots(req, res) {
       idx % 6,          // cycle color_index
     ]);
 
-    await db.query(
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM timetable_slots WHERE user_id = ?', [req.user.id]);
+    await conn.query(
       `INSERT INTO timetable_slots
          (user_id, course_name, course_code, day_of_week, start_time, end_time,
           venue, lecturer, slot_type, color_index)
        VALUES ?`,
       [rows]
     );
+    await conn.commit();
 
     return res.status(201).json({ success: true, message: `${rows.length} slots saved to timetable` });
   } catch (err) {
+    await conn.rollback().catch(() => {});
     console.error('bulkAddTimetableSlots error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
+  } finally {
+    conn.release();
   }
 }
 
