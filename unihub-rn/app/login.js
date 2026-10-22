@@ -105,7 +105,7 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed" size={18} color="#7b5ea7" />
+                <Ionicons name="lock-closed" size={18} color="#0b3d63" />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"

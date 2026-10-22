@@ -5,30 +5,25 @@ import {
   TouchableOpacity, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { setStatusBarStyle } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 import { syncNotifications } from '../constants/notifications';
+import { syncPortal } from '../constants/portalSync';
 import { Ionicons } from '@expo/vector-icons';
 
 const PRI_COLOR  = { High: Colors.accent3, Med: Colors.warn, Low: Colors.accent4 };
 const TYPE_COLOR = { assignment: Colors.accent, lab: Colors.accent2, fyp: Colors.accent3, study: Colors.accent4, quiz: Colors.warn, other: Colors.accent };
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning 👋';
-  if (h < 18) return 'Good afternoon ☀️';
-  return 'Good evening 🌙';
-}
-
-function StatCard({ icon, value, label, color }) {
+function StatCard({ icon, value, label }) {
   return (
     <View style={styles.statCard}>
-      <View style={[styles.statIconWrap, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={18} color={color} />
+      <View style={styles.statIconWrap}>
+        <Ionicons name={icon} size={18} color={Colors.navy} />
       </View>
-      <Text style={[styles.statVal, { color }]}>{value}</Text>
+      <Text style={styles.statVal}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -46,7 +41,7 @@ function DeadlineItem({ item }) {
           <Text style={styles.deadlineCourse}>{item.course || item.course_code || 'Task'}</Text>
           {item.source === 'moodle' && (
             <View style={styles.moodleBadge}>
-              <Text style={styles.moodleBadgeText}>Moodle</Text>
+              <Text style={styles.moodleBadgeText}>Portal</Text>
             </View>
           )}
         </View>
@@ -108,20 +103,18 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // White status-bar icons over the navy header; back to dark on other screens.
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle('light');
+    return () => setStatusBarStyle('dark');
+  }, []));
+
   const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
 
-  async function handleMoodleSync() {
+  async function handlePortalSync() {
     setSyncing(true);
-    try {
-      const data = await apiFetch('/moodle/sync', { method: 'POST' });
-      const note = data.isDummy ? '\n(Demo data — connect Moodle API for live assignments)' : '';
-      Alert.alert('Moodle Synced', `${data.new} new · ${data.updated} updated${note}`);
-      load(); // refresh dashboard with new tasks
-    } catch (e) {
-      Alert.alert('Sync Failed', e.message);
-    } finally {
-      setSyncing(false);
-    }
+    if (await syncPortal()) load(); // refresh dashboard with new tasks
+    setSyncing(false);
   }
 
   const firstClash   = clash[0];
@@ -142,21 +135,16 @@ export default function DashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.navy }]} edges={['top']}>
       <ScrollView
+        style={{ backgroundColor: Colors.bg }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greetingSub}>{greeting()}</Text>
-            <Text style={styles.greetingName}>
-              {user?.name?.split(' ')[1] || user?.name || 'Student'}{' '}
-              <Text style={{ color: Colors.accent }}>·</Text> UniHub
-            </Text>
-          </View>
+          <Text style={styles.greetingName}>UniHub</Text>
           <TouchableOpacity style={styles.avatar} onPress={() => router.push('/profile')}>
             <Text style={styles.avatarText}>{initials}</Text>
           </TouchableOpacity>
@@ -164,20 +152,20 @@ export default function DashboardScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCard icon="calendar-outline"        value={String(stats.upcomingDeadlines)} label="Deadlines"  color={Colors.accent} />
-          <StatCard icon="checkmark-circle-outline" value={String(stats.completedTasks)}    label="Completed"  color={Colors.accent4} />
-          <StatCard icon="bar-chart-outline"        value={gpa !== null ? String(gpa) : '—'} label="Curr. GPA" color={Colors.accent2} />
+          <StatCard icon="calendar-outline"        value={String(stats.upcomingDeadlines)} label="Deadlines" />
+          <StatCard icon="checkmark-circle-outline" value={String(stats.completedTasks)}    label="Completed" />
+          <StatCard icon="bar-chart-outline"        value={gpa !== null ? String(gpa) : '—'} label="Curr. GPA" />
         </View>
 
-        {/* Moodle Sync Card */}
+        {/* Portal Sync Card */}
         {!hasMoodle ? (
           // Not yet synced — prompt the user
           <TouchableOpacity
             style={styles.moodlePrompt}
-            onPress={handleMoodleSync} disabled={syncing} activeOpacity={0.8}
+            onPress={handlePortalSync} disabled={syncing} activeOpacity={0.8}
           >
             <View style={styles.moodlePromptLeft}>
-              <Text style={styles.moodlePromptTitle}>Sync Moodle Assignments</Text>
+              <Text style={styles.moodlePromptTitle}>Sync Student Portal</Text>
               <Text style={styles.moodlePromptSub}>Pull your latest tasks & deadlines automatically</Text>
             </View>
             {syncing
@@ -189,15 +177,15 @@ export default function DashboardScreen() {
           // Already synced — show status + re-sync button
           <View style={styles.moodleStatus}>
             <View style={styles.moodleStatusLeft}>
-              <View style={[styles.moodleDot, { backgroundColor: moodleStatus.isDummy ? Colors.warn : Colors.accent4 }]} />
+              <View style={[styles.moodleDot, { backgroundColor: Colors.accent4 }]} />
               <Text style={styles.moodleStatusText}>
-                {moodleStatus.isDummy ? 'Demo' : 'Live'} · {moodleStatus.count} Moodle task{moodleStatus.count !== 1 ? 's' : ''}
+                {moodleStatus.count} portal task{moodleStatus.count !== 1 ? 's' : ''}
                 {lastSyncText ? ` · Synced ${lastSyncText}` : ''}
               </Text>
             </View>
             <TouchableOpacity
               style={[styles.reSyncBtn, syncing && { opacity: 0.5 }]}
-              onPress={handleMoodleSync} disabled={syncing} activeOpacity={0.8}
+              onPress={handlePortalSync} disabled={syncing} activeOpacity={0.8}
             >
               {syncing
                 ? <ActivityIndicator color="white" size="small" />
@@ -286,13 +274,13 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', padding: 22, paddingBottom: 16,
+    alignItems: 'center', paddingHorizontal: 22, paddingVertical: 16,
+    backgroundColor: Colors.navy, marginBottom: 18,
   },
-  greetingSub:  { fontSize: 13, color: Colors.muted, marginBottom: 4 },
-  greetingName: { fontSize: 22, fontWeight: '800', color: Colors.text },
+  greetingName: { fontSize: 22, fontWeight: '800', color: 'white' },
   avatar: {
     width: 44, height: 44, borderRadius: 14,
-    backgroundColor: Colors.accent2,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 16, fontWeight: '800', color: 'white' },
@@ -300,11 +288,13 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 22, marginBottom: 14 },
   statCard: {
     flex: 1, backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
     borderRadius: 16, padding: 14, gap: 5,
   },
-  statIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  statVal:   { fontSize: 20, fontWeight: '800' },
+  statIconWrap: {
+    width: 36, height: 36, borderRadius: 12, marginBottom: 2,
+    backgroundColor: `${Colors.navy}18`, alignItems: 'center', justifyContent: 'center',
+  },
+  statVal:   { fontSize: 20, fontWeight: '800', color: Colors.navy },
   statLabel: { fontSize: 10, color: Colors.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
 
   // Moodle prompt (first sync)

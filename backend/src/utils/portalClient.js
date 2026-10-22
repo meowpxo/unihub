@@ -12,10 +12,20 @@
 const PORTAL_URL =
   process.env.PORTAL_URL || process.env.MOODLE_URL || 'http://localhost:4000';
 
+// fetch() that turns a network failure (portal down / wrong URL) into a clear message.
+async function portalFetch(path, options) {
+  try {
+    return await fetch(`${PORTAL_URL}${path}`, options);
+  } catch (e) {
+    console.error(`[portal] cannot reach ${PORTAL_URL}:`, e.cause?.code || e.message);
+    throw new Error('Cannot reach the student portal right now. Please try again later.');
+  }
+}
+
 // Log in to the portal with the student's portal credentials.
 // Returns { token, student }.
 async function portalLogin(username, password) {
-  const res = await fetch(`${PORTAL_URL}/api/portal/login`, {
+  const res = await portalFetch('/api/portal/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -31,7 +41,7 @@ async function portalLogin(username, password) {
 
 // GET a portal endpoint with the student's stored session token.
 async function portalGet(path, token) {
-  const res = await fetch(`${PORTAL_URL}${path}`, {
+  const res = await portalFetch(path, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 401) {

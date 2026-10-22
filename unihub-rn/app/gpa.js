@@ -11,12 +11,12 @@ import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 import { Ionicons } from '@expo/vector-icons';
 
-const COURSE_COLORS = [Colors.accent, Colors.accent2, Colors.teal ?? '#4ecdc4', Colors.warn, Colors.accent3, Colors.accent4];
+const COURSE_COLORS = [Colors.accent, Colors.purple, Colors.teal ?? '#4ecdc4', Colors.amber, Colors.accent3, Colors.accent4];
 
 const GRADE_COLOR = {
   A: Colors.accent4, 'A-': Colors.accent4,
-  'B+': Colors.accent2, B: Colors.accent2, 'B-': Colors.accent2,
-  'C+': Colors.warn, C: Colors.warn,
+  'B+': Colors.purple, B: Colors.purple, 'B-': Colors.purple,
+  'C+': Colors.amber, C: Colors.amber,
   D: Colors.accent3, F: Colors.accent3,
 };
 
@@ -162,8 +162,8 @@ export default function GPAScreen() {
 
         {courses.length === 0 && (
           <View style={styles.emptyBox}>
-            <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.accent2}25`, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-              <Ionicons name="bar-chart" size={34} color={Colors.accent2} />
+            <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: `${Colors.purple}25`, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <Ionicons name="bar-chart" size={34} color={Colors.purple} />
             </View>
             <Text style={styles.emptyText}>No courses yet</Text>
             <Text style={styles.emptyHint}>Tap "Add Course" to start tracking your GPA</Text>
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 
   heroCard: {
     marginHorizontal: 22, marginBottom: 16,
-    borderRadius: 24, padding: 24, backgroundColor: Colors.accent2, overflow: 'hidden',
+    borderRadius: 24, padding: 24, backgroundColor: Colors.navy, overflow: 'hidden',
   },
   heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 6 },
   heroValue: { fontSize: 60, fontWeight: '800', color: 'white', lineHeight: 68 },

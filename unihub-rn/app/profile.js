@@ -9,7 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
-import { getNotificationPrefs, setNotificationPref, clearNotifications } from '../constants/notifications';
+import {
+  getNotificationPrefs, setNotificationPref, clearNotifications, notificationsSupported,
+} from '../constants/notifications';
+
+const NOTIF_UNAVAILABLE = 'Not available in Expo Go on Android';
 import { Ionicons } from '@expo/vector-icons';
 
 function SettingItem({ icon, iconColor, iconBg, label, sub, hasToggle, toggleVal, onToggle, danger, onPress }) {
@@ -137,14 +141,14 @@ export default function ProfileScreen() {
         {/* AI Tools */}
         <Text style={styles.groupTitle}>AI Tools</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="sparkles" iconColor="#7b5ea7" label="Smart Study Planner" sub="AI schedule around your classes & deadlines"
+          <SettingItem icon="sparkles" iconColor="#0b3d63" label="Smart Study Planner" sub="AI schedule around your classes & deadlines"
             onPress={() => router.push('/study-planner')} />
         </View>
 
         {/* Integrations */}
         <Text style={styles.groupTitle}>Integrations</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="school" iconColor="#7b5ea7" label="Student Portal" sub="Connect & sync timetable, grades, assignments"
+          <SettingItem icon="school" iconColor="#0b3d63" label="Student Portal" sub="Connect & sync timetable, grades, assignments"
             onPress={() => router.push('/portal')} />
           <SettingItem icon="document-text" iconColor="#4f8ef7" label="PDF Schedule" sub="Upload academic calendar PDF"
             onPress={() => router.push('/pdf-upload')} />
@@ -156,16 +160,18 @@ export default function ProfileScreen() {
         {/* Notifications */}
         <Text style={styles.groupTitle}>Notifications</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="notifications" iconColor="#f0a500" label="Deadline Reminders" sub="Push alerts for upcoming tasks"
+          <SettingItem icon="notifications" iconColor="#f47c7c" label="Deadline Reminders"
+            sub={notificationsSupported ? 'Push alerts for upcoming tasks' : NOTIF_UNAVAILABLE}
             hasToggle toggleVal={notifs} onToggle={v => toggleNotifPref('deadlines', v, setNotifs)} />
-          <SettingItem icon="flash" iconColor="#e8604c" label="Clash Alerts" sub="Warn when multiple deadlines clash"
+          <SettingItem icon="flash" iconColor="#e8604c" label="Clash Alerts"
+            sub={notificationsSupported ? 'Warn when multiple deadlines clash' : NOTIF_UNAVAILABLE}
             hasToggle toggleVal={clash} onToggle={v => toggleNotifPref('clash', v, setClash)} />
         </View>
 
         {/* Account */}
         <Text style={styles.groupTitle}>Account</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="person" iconColor="#7b5ea7" label="Profile" sub={user?.email || ''} />
+          <SettingItem icon="person" iconColor="#0b3d63" label="Profile" sub={user?.email || ''} />
           <SettingItem icon="lock-closed" iconColor="#2dcfce" label="Change Password" sub="Update your password" />
           <SettingItem icon="log-out" label="Log Out" sub="Sign out of UniHub" danger onPress={handleLogout} />
         </View>
@@ -180,7 +186,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   profileHero: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: 'white', borderWidth: 1, borderColor: Colors.border,
     borderRadius: 24, marginBottom: 24, alignItems: 'center',
     overflow: 'hidden', paddingBottom: 20,
   },
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
   },
   settingsGroup: { marginBottom: 24, gap: 8 },
   settingItem: {
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: 'white', borderWidth: 1, borderColor: Colors.border,
     borderRadius: 14, padding: 14, flexDirection: 'row',
     alignItems: 'center', gap: 14,
   },

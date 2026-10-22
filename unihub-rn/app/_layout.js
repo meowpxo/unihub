@@ -11,8 +11,8 @@ import { Colors } from '../constants/Colors';
 const TABS = [
   { name: 'index',    label: 'Home',     icon: 'home',           iconOut: 'home-outline',           color: '#4f8ef7' },
   { name: 'schedule', label: 'Schedule', icon: 'calendar',       iconOut: 'calendar-outline',       color: '#38c9a0' },
-  { name: 'tasks',    label: 'Tasks',    icon: 'checkmark-done', iconOut: 'checkmark-done-outline', color: '#7b5ea7' },
-  { name: 'gpa',      label: 'GPA',      icon: 'bar-chart',      iconOut: 'bar-chart-outline',      color: '#f0a500' },
+  { name: 'tasks',    label: 'Tasks',    icon: 'checkmark-done', iconOut: 'checkmark-done-outline', color: '#0b3d63' },
+  { name: 'gpa',      label: 'GPA',      icon: 'bar-chart',      iconOut: 'bar-chart-outline',      color: '#f47c7c' },
   { name: 'profile',  label: 'Profile',  icon: 'person',         iconOut: 'person-outline',         color: '#e8604c' },
 ];
 

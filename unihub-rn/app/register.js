@@ -60,7 +60,7 @@ export default function RegisterScreen() {
   }
 
   const fields = [
-    { key: 'name',      label: 'Full Name',        icon: 'person',      iconColor: '#7b5ea7', placeholder: 'Syed Muhammad Zulkifli',         type: 'default' },
+    { key: 'name',      label: 'Full Name',        icon: 'person',      iconColor: '#0b3d63', placeholder: 'Syed Muhammad Zulkifli',         type: 'default' },
     { key: 'studentId', label: 'Student ID',        icon: 'school',      iconColor: '#38c9a0', placeholder: '52213224368',                   type: 'default' },
     { key: 'email',     label: 'Email',             icon: 'mail',        iconColor: '#4f8ef7', placeholder: 'student@university.edu.my',     type: 'email-address' },
     { key: 'password',  label: 'Password',          icon: 'lock-closed', iconColor: '#2dcfce', placeholder: 'Min. 6 characters',             secure: true },

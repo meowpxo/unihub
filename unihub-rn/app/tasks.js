@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 import { syncNotifications } from '../constants/notifications';
+import { syncPortal } from '../constants/portalSync';
 import { Ionicons } from '@expo/vector-icons';
 
 const FILTERS       = ['All', 'assignment', 'lab', 'study', 'fyp', 'quiz', 'other'];
@@ -59,19 +60,10 @@ export default function TasksScreen() {
 
   const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
 
-  async function handleMoodleSync() {
+  async function handlePortalSync() {
     setSyncing(true);
-    try {
-      const data = await apiFetch('/moodle/sync', { method: 'POST' });
-      setSyncStatus(s => ({ ...s, count: data.total, last_sync: new Date().toISOString(), isDummy: data.isDummy }));
-      load();
-      const note = data.isDummy ? '\n(Using demo data — connect Moodle API for live assignments)' : '';
-      Alert.alert('Moodle Synced', `${data.new} new · ${data.updated} updated${note}`);
-    } catch (e) {
-      Alert.alert('Sync Failed', e.message);
-    } finally {
-      setSyncing(false);
-    }
+    if (await syncPortal()) { load(); loadSyncStatus(); }
+    setSyncing(false);
   }
 
   async function handleToggle(id) {
@@ -87,7 +79,7 @@ export default function TasksScreen() {
     Alert.alert(
       'Delete Task',
       isMoodle
-        ? 'This task is synced from Moodle. Deleting it locally will not affect Moodle. Continue?'
+        ? 'This task is synced from your student portal. It will come back on the next sync if it is still on the portal. Continue?'
         : 'Remove this task?',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -148,11 +140,11 @@ export default function TasksScreen() {
           <Text style={styles.title}>Tasks</Text>
           <TouchableOpacity
             style={[styles.syncBtn, syncing && { opacity: 0.6 }]}
-            onPress={handleMoodleSync} disabled={syncing} activeOpacity={0.8}
+            onPress={handlePortalSync} disabled={syncing} activeOpacity={0.8}
           >
             {syncing
               ? <ActivityIndicator color="white" size="small" />
-              : <><Ionicons name="refresh" size={15} color="white" /><Text style={[styles.syncBtnText, { marginLeft: 6 }]}>Sync Moodle</Text></>
+              : <><Ionicons name="refresh" size={15} color="white" /><Text style={[styles.syncBtnText, { marginLeft: 6 }]}>Sync Portal</Text></>
             }
           </TouchableOpacity>
         </View>
@@ -160,9 +152,9 @@ export default function TasksScreen() {
         {/* Sync status bar */}
         {syncStatus?.last_sync && (
           <View style={styles.syncBar}>
-            <View style={[styles.syncDot, { backgroundColor: syncStatus.isDummy ? Colors.warn : Colors.accent4 }]} />
+            <View style={[styles.syncDot, { backgroundColor: Colors.accent4 }]} />
             <Text style={styles.syncBarText}>
-              {syncStatus.isDummy ? 'Demo mode' : 'Live'} · {syncStatus.count} Moodle task{syncStatus.count !== 1 ? 's' : ''} · Last sync {formatLastSync(syncStatus.last_sync)}
+              {syncStatus.count} portal task{syncStatus.count !== 1 ? 's' : ''} · Last sync {formatLastSync(syncStatus.last_sync)}
             </Text>
           </View>
         )}
@@ -191,7 +183,7 @@ export default function TasksScreen() {
               <Ionicons name="clipboard" size={34} color={Colors.accent3} />
             </View>
             <Text style={styles.emptyText}>No tasks yet</Text>
-            <Text style={styles.emptyHint}>Sync Moodle or tap + to add tasks</Text>
+            <Text style={styles.emptyHint}>Sync your portal or tap + to add tasks</Text>
           </View>
         ) : (
           <View style={styles.taskList}>
@@ -217,7 +209,7 @@ export default function TasksScreen() {
                       </Text>
                       {isMoodle && (
                         <View style={styles.moodleBadge}>
-                          <Text style={styles.moodleBadgeText}>Moodle</Text>
+                          <Text style={styles.moodleBadgeText}>Portal</Text>
                         </View>
                       )}
                     </View>

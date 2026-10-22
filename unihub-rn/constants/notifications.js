@@ -2,14 +2,26 @@
  * notifications.js
  *
  * Deadline reminders and clash alerts, scheduled as local notifications on the
- * device (works in Expo Go — no push server needed). syncNotifications() wipes
- * and re-schedules everything from the latest tasks + clashes, so call it
- * whenever that data may have changed.
+ * device (no push server needed). syncNotifications() wipes and re-schedules
+ * everything from the latest tasks + clashes, so call it whenever that data may
+ * have changed.
+ *
+ * Expo Go on Android (SDK 53+) throws as soon as expo-notifications is imported,
+ * so there the module is never loaded and everything below is a no-op. Use a
+ * development build (npx expo run:android) to get notifications on Android.
  */
 import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 import { apiFetch } from './api';
+
+const isExpoGoAndroid =
+  Platform.OS === 'android' &&
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+export const notificationsSupported = Platform.OS !== 'web' && !isExpoGoAndroid;
+
+const Notifications = notificationsSupported ? require('expo-notifications') : null;
 
 const PREF_KEYS = { deadlines: 'unihub_notif_deadlines', clash: 'unihub_notif_clash' };
 const CLASH_ALERTED_KEY = 'unihub_clash_alerted';
@@ -17,7 +29,7 @@ const CHANNEL_ID = 'reminders';
 const MAX_SCHEDULED = 60;           // iOS keeps at most 64 pending notifications
 const LOOKAHEAD_DAYS = 30;
 
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList:   true,
@@ -43,7 +55,7 @@ export async function setNotificationPref(name, enabled) {
 
 // ── Permission + Android channel ─────────────────────────────────────────────
 async function ensurePermission() {
-  if (Platform.OS === 'web') return false;
+  if (!notificationsSupported) return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Deadlines & clashes',
@@ -144,7 +156,7 @@ export function syncNotifications() {
 }
 
 async function doSync() {
-  if (Platform.OS === 'web') return;
+  if (!notificationsSupported) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   const token = await AsyncStorage.getItem('unihub_token');
@@ -176,7 +188,7 @@ async function doSync() {
 }
 
 export async function clearNotifications() {
-  if (Platform.OS === 'web') return;
+  if (!notificationsSupported) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   await AsyncStorage.removeItem(CLASH_ALERTED_KEY);
 }

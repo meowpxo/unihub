@@ -124,9 +124,15 @@ async function sync(req, res) {
 
     const result = { timetable: 0, grades: 0, assignments: 0 };
 
-    // ── Timetable → timetable_slots (replace portal-sourced rows) ──
-    await db.query('DELETE FROM timetable_slots WHERE user_id = ? AND source = ?', [userId, 'portal']);
-    const slotRows = (timetable.slots || []).map((s, i) => [
+    // ── Timetable → timetable_slots ──
+    // The portal timetable replaces the whole timetable (earlier portal syncs and
+    // PDF uploads alike), matching PDF upload, so only the latest import shows.
+    // Skipped if the portal returned no classes, so a glitch can't wipe it.
+    const portalSlots = timetable.slots || [];
+    if (portalSlots.length) {
+      await db.query('DELETE FROM timetable_slots WHERE user_id = ?', [userId]);
+    }
+    const slotRows = portalSlots.map((s, i) => [
       userId, s.course_name, s.course_code || null, s.day_of_week,
       s.start_time, s.end_time, s.venue || null, s.lecturer || null,
       s.slot_type || 'lecture', s.color_index ?? (i % 6), 'portal',
@@ -165,7 +171,17 @@ async function sync(req, res) {
     }
 
     // ── Assignments → tasks (upsert by moodle_id, like Moodle sync) ──
-    for (const a of (assignments.assignments || [])) {
+    // The portal is the source of truth for synced tasks: drop any synced task
+    // (including old demo Moodle ones) that isn't in this sync. Manual tasks stay.
+    const portalTasks = assignments.assignments || [];
+    const keepIds = portalTasks.map(a => `portal_${a.id}`);
+    await db.query(
+      `DELETE FROM tasks WHERE user_id = ? AND source = 'moodle'
+         AND moodle_id NOT IN (?)`,
+      [userId, keepIds.length ? keepIds : ['']]
+    );
+
+    for (const a of portalTasks) {
       const moodleId = `portal_${a.id}`;
       const [existing] = await db.query(
         'SELECT id FROM tasks WHERE user_id = ? AND moodle_id = ?',

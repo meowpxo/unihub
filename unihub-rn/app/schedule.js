@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, Modal, TextInput,
@@ -51,7 +52,9 @@ export default function ScheduleScreen() {
     }
   }, [activeDay]);
 
-  useEffect(() => { fetchSlots(); }, [fetchSlots]);
+  // Refetch whenever the tab is opened (e.g. after a portal sync or PDF import),
+  // not just when the selected day changes.
+  useFocusEffect(useCallback(() => { fetchSlots(); }, [fetchSlots]));
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
