@@ -167,6 +167,18 @@ CREATE TABLE IF NOT EXISTS google_links (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- ─────────────────────────────────────────
+-- PASSWORD RESETS (Forgot password – emailed 6-digit code)
+-- ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS password_resets (
+  user_id     INT          PRIMARY KEY,
+  code_hash   VARCHAR(255) NOT NULL,             -- bcrypt hash of the 6-digit code
+  expires_at  DATETIME     NOT NULL,
+  attempts    INT          NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX idx_timetable_user_day ON timetable_slots (user_id, day_of_week);
 CREATE INDEX idx_gpa_courses_user   ON gpa_courses (user_id);
 CREATE INDEX idx_gpa_assess_course  ON gpa_assessments (gpa_course_id);

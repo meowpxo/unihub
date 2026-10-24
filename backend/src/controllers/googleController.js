@@ -89,6 +89,12 @@ async function callback(req, res) {
   try {
     const tokens = await google.exchangeCode(String(req.query.code || ''));
     if (!tokens.refresh_token) throw new Error('Google did not return a refresh token');
+    if (!tokens.calendarGranted) {
+      await google.revoke(tokens.refresh_token);
+      return sendPage(res, 400, 'Calendar permission needed',
+        'UniHub needs permission to manage its own calendar. Go back to UniHub, tap Connect again, and tick the calendar box on the Google permission screen.',
+        state.returnUrl, 'cancelled');
+    }
 
     // calendar_id is assigned before google_email, so it still compares the old
     // email: keep the calendar for the same account, reset it for a different one.
@@ -134,21 +140,48 @@ async function sync(req, res) {
         message: 'Google access was removed or expired — please reconnect Google Calendar',
       });
     }
+    if (err.code === 'GOOGLE_SCOPE') {
+      await db.query('DELETE FROM google_links WHERE user_id = ?', [req.user.id]);
+      return res.status(403).json({
+        success: false, needsConnect: true,
+        message: 'Calendar permission was not granted. Tap Connect again and tick the calendar box on the Google permission screen.',
+      });
+    }
     console.error('google sync error:', err);
     return res.status(500).json({ success: false, message: 'Google Calendar sync failed' });
   }
 }
 
 // ── POST /disconnect ──────────────────────────────────────────────────────────
-// The "UniHub" calendar stays in the student's Google account; they can delete it there.
+// Deletes the "UniHub" calendar from the student's Google account, then revokes access.
+// The student's own calendars are never touched (the scope only covers calendars UniHub created).
 async function disconnect(req, res) {
   try {
-    const [[row]] = await db.query('SELECT refresh_token FROM google_links WHERE user_id = ?', [req.user.id]);
+    const [[row]] = await db.query('SELECT refresh_token, calendar_id FROM google_links WHERE user_id = ?', [req.user.id]);
+    let calendarRemoved = false;
     if (row) {
-      try { await google.revoke(google.decrypt(row.refresh_token)); } catch {}
+      const refreshToken = google.decrypt(row.refresh_token);
+      if (row.calendar_id) {
+        try {
+          const token = await google.getAccessToken(refreshToken);
+          await google.deleteCalendar(token, row.calendar_id);
+          calendarRemoved = true;
+        } catch (e) {
+          // Already deleted by the student, or access already gone — nothing left to clean up here
+          if (e.status === 404 || e.status === 410) calendarRemoved = true;
+          else console.warn('google disconnect: could not delete UniHub calendar:', e.message);
+        }
+      }
+      try { await google.revoke(refreshToken); } catch {}
       await db.query('DELETE FROM google_links WHERE user_id = ?', [req.user.id]);
     }
-    return res.json({ success: true, message: 'Google Calendar disconnected' });
+    return res.json({
+      success: true,
+      calendarRemoved,
+      message: calendarRemoved || !row?.calendar_id
+        ? 'Google Calendar disconnected and the UniHub calendar was removed'
+        : 'Google Calendar disconnected, but the UniHub calendar could not be removed — you can delete it in Google Calendar',
+    });
   } catch (err) {
     console.error('google disconnect error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });

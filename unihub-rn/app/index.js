@@ -198,7 +198,7 @@ export default function DashboardScreen() {
         {/* Clash Alert (Module 8) */}
         {firstClash && (
           <View style={styles.alertCard}>
-            <Ionicons name="flash" size={22} color="#ff7a6b" />
+            <Ionicons name="flash" size={22} color={Colors.accent3} />
             <View style={{ flex: 1 }}>
               <Text style={styles.alertTitle}>
                 Clash Alert – {new Date(firstClash.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -329,13 +329,13 @@ const styles = StyleSheet.create({
 
   alertCard: {
     marginHorizontal: 22, marginBottom: 16,
-    backgroundColor: 'rgba(232,96,76,0.1)',
-    borderWidth: 1, borderColor: 'rgba(232,96,76,0.35)',
+    backgroundColor: `${Colors.accent3}12`,
+    borderWidth: 1, borderColor: `${Colors.accent3}55`,
     borderRadius: 16, padding: 14,
     flexDirection: 'row', gap: 12, alignItems: 'flex-start',
   },
   alertIcon:  { fontSize: 22 },
-  alertTitle: { fontWeight: '700', fontSize: 14, color: '#ff7a6b', marginBottom: 3 },
+  alertTitle: { fontWeight: '700', fontSize: 14, color: Colors.accent3, marginBottom: 3 },
   alertSub:   { fontSize: 12, color: Colors.muted, marginBottom: 6 },
 
   suggestionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, marginTop: 2 },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   deadlineItem: {
     flexDirection: 'row', alignItems: 'center',
     gap: 12, paddingHorizontal: 22, paddingVertical: 13,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(42,48,69,0.5)',
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   deadlineDot:       { width: 10, height: 10, borderRadius: 5 },
   deadlineInfo:      { flex: 1 },
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   workloadTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
   wlRow:         { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   wlLabel:       { fontSize: 11, color: Colors.muted, width: 30, textAlign: 'right' },
-  wlTrack: { flex: 1, height: 6, backgroundColor: '#2a3045', borderRadius: 99, overflow: 'hidden' },
+  wlTrack: { flex: 1, height: 6, backgroundColor: Colors.surface2, borderRadius: 99, overflow: 'hidden' },
   wlFill:        { height: 6, borderRadius: 99 },
   wlCount:       { fontSize: 11, fontWeight: '700', width: 16 },
 });

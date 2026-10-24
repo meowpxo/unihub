@@ -79,14 +79,14 @@ export default function LoginScreen() {
 
           {/* Form Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Welcome back 👋</Text>
+            <Text style={styles.cardTitle}>Welcome back </Text>
             <Text style={styles.cardSub}>Sign in to your student account</Text>
 
             {/* Email */}
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email</Text>
               <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
-                <Ionicons name="mail" size={18} color="#4f8ef7" />
+                <Ionicons name="mail" size={18} color={Colors.accent} />
                 <TextInput
                   style={styles.input}
                   placeholder="student@university.edu.my"
@@ -105,7 +105,7 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Password</Text>
               <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed" size={18} color="#0b3d63" />
+                <Ionicons name="lock-closed" size={18} color={Colors.accent2} />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"
@@ -115,14 +115,18 @@ export default function LoginScreen() {
                   onChangeText={t => { setPassword(t); setErrors(e => ({ ...e, password: null })); }}
                 />
                 <TouchableOpacity onPress={() => setShowPass(p => !p)} activeOpacity={0.7}>
-                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color="#38c9a0" />
+                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={Colors.accent4} />
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.forgotRow}
+              activeOpacity={0.7}
+              onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
+            >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 

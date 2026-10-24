@@ -8,26 +8,38 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 
+// One brand colour for every tab keeps the bar calm and consistent.
+const TAB_ACTIVE   = Colors.accent;
+const TAB_INACTIVE = Colors.muted;   // dark enough to read clearly when not selected
+
 const TABS = [
-  { name: 'index',    label: 'Home',     icon: 'home',           iconOut: 'home-outline',           color: '#4f8ef7' },
-  { name: 'schedule', label: 'Schedule', icon: 'calendar',       iconOut: 'calendar-outline',       color: '#38c9a0' },
-  { name: 'tasks',    label: 'Tasks',    icon: 'checkmark-done', iconOut: 'checkmark-done-outline', color: '#0b3d63' },
-  { name: 'gpa',      label: 'GPA',      icon: 'bar-chart',      iconOut: 'bar-chart-outline',      color: '#f47c7c' },
-  { name: 'profile',  label: 'Profile',  icon: 'person',         iconOut: 'person-outline',         color: '#e8604c' },
+  { name: 'index',    label: 'Home',     icon: 'home',           color: TAB_ACTIVE },
+  { name: 'schedule', label: 'Schedule', icon: 'calendar',       color: TAB_ACTIVE },
+  { name: 'tasks',    label: 'Tasks',    icon: 'checkmark-done', color: TAB_ACTIVE },
+  { name: 'gpa',      label: 'GPA',      icon: 'bar-chart',      color: TAB_ACTIVE },
+  { name: 'profile',  label: 'Profile',  icon: 'person',         color: TAB_ACTIVE },
 ];
 
+// Icons are always filled so they stay easy to see; the selected tab
+// pops up as a raised solid button with a white icon.
 function TabIcon({ tab, focused }) {
   return (
-    <View style={{
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: focused ? `${tab.color}22` : 'transparent',
-      borderRadius: 12,
-      width: 44, height: 30,
-    }}>
+    <View style={[
+      {
+        alignItems: 'center', justifyContent: 'center',
+        width: 46, height: 34, borderRadius: 14,
+      },
+      focused && {
+        backgroundColor: tab.color,
+        transform: [{ translateY: -6 }, { scale: 1.08 }],
+        shadowColor: tab.color, shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
+      },
+    ]}>
       <Ionicons
-        name={focused ? tab.icon : tab.iconOut}
-        size={focused ? 22 : 20}
-        color={focused ? tab.color : '#b0b8cc'}
+        name={tab.icon}
+        size={22}
+        color={focused ? 'white' : TAB_INACTIVE}
       />
     </View>
   );
@@ -61,11 +73,11 @@ export default function RootLayout() {
             backgroundColor: Colors.surface,
             borderTopColor: Colors.border,
             borderTopWidth: 1,
-            height: Platform.OS === 'ios' ? 88 : 68,
+            height: Platform.OS === 'ios' ? 94 : 76,
             paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-            paddingTop: 6,
+            paddingTop: 12,
           },
-          tabBarInactiveTintColor: '#b0b8cc',
+          tabBarInactiveTintColor: TAB_INACTIVE,
           tabBarLabelStyle: {
             fontSize: 10,
             fontWeight: '700',
@@ -90,10 +102,13 @@ export default function RootLayout() {
 
         <Tabs.Screen name="login"      options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="register"   options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="forgot-password" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="pdf-upload" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="portal"     options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="study-planner" options={{ href: null, tabBarStyle: { display: 'none' } }} />
         <Tabs.Screen name="google-calendar" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="edit-profile"    options={{ href: null, tabBarStyle: { display: 'none' } }} />
+        <Tabs.Screen name="change-password" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
     </SafeAreaProvider>
   );

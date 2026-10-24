@@ -141,18 +141,18 @@ export default function ProfileScreen() {
         {/* AI Tools */}
         <Text style={styles.groupTitle}>AI Tools</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="sparkles" iconColor="#0b3d63" label="Smart Study Planner" sub="AI schedule around your classes & deadlines"
+          <SettingItem icon="sparkles" iconColor={Colors.accent2} label="Smart Study Planner" sub="AI schedule around your classes & deadlines"
             onPress={() => router.push('/study-planner')} />
         </View>
 
         {/* Integrations */}
         <Text style={styles.groupTitle}>Integrations</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="school" iconColor="#0b3d63" label="Student Portal" sub="Connect & sync timetable, grades, assignments"
+          <SettingItem icon="school" iconColor={Colors.accent2} label="Student Portal" sub="Connect & sync timetable, grades, assignments"
             onPress={() => router.push('/portal')} />
-          <SettingItem icon="document-text" iconColor="#4f8ef7" label="PDF Schedule" sub="Upload academic calendar PDF"
+          <SettingItem icon="document-text" iconColor={Colors.accent} label="PDF Schedule" sub="Upload academic calendar PDF"
             onPress={() => router.push('/pdf-upload')} />
-          <SettingItem icon="calendar" iconColor="#38c9a0" label="Google Calendar"
+          <SettingItem icon="calendar" iconColor={Colors.accent4} label="Google Calendar"
             sub={gcal?.connected ? `Connected · ${gcal.google_email || 'Google account'}` : 'Not connected'}
             onPress={() => router.push('/google-calendar')} />
         </View>
@@ -160,10 +160,10 @@ export default function ProfileScreen() {
         {/* Notifications */}
         <Text style={styles.groupTitle}>Notifications</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="notifications" iconColor="#f47c7c" label="Deadline Reminders"
+          <SettingItem icon="notifications" iconColor={Colors.warn} label="Deadline Reminders"
             sub={notificationsSupported ? 'Push alerts for upcoming tasks' : NOTIF_UNAVAILABLE}
             hasToggle toggleVal={notifs} onToggle={v => toggleNotifPref('deadlines', v, setNotifs)} />
-          <SettingItem icon="flash" iconColor="#e8604c" label="Clash Alerts"
+          <SettingItem icon="flash" iconColor={Colors.accent3} label="Clash Alerts"
             sub={notificationsSupported ? 'Warn when multiple deadlines clash' : NOTIF_UNAVAILABLE}
             hasToggle toggleVal={clash} onToggle={v => toggleNotifPref('clash', v, setClash)} />
         </View>
@@ -171,8 +171,10 @@ export default function ProfileScreen() {
         {/* Account */}
         <Text style={styles.groupTitle}>Account</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem icon="person" iconColor="#0b3d63" label="Profile" sub={user?.email || ''} />
-          <SettingItem icon="lock-closed" iconColor="#2dcfce" label="Change Password" sub="Update your password" />
+          <SettingItem icon="person" iconColor={Colors.accent2} label="Profile" sub={user?.email || ''}
+            onPress={() => router.push('/edit-profile')} />
+          <SettingItem icon="lock-closed" iconColor={Colors.teal} label="Change Password" sub="Update your password"
+            onPress={() => router.push('/change-password')} />
           <SettingItem icon="log-out" label="Log Out" sub="Sign out of UniHub" danger onPress={handleLogout} />
         </View>
 

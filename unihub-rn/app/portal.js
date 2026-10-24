@@ -207,13 +207,16 @@ const styles = StyleSheet.create({
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: Colors.accent, borderRadius: 14, paddingVertical: 15, marginTop: 4,
+    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25, shadowRadius: 12, elevation: 5,
   },
   primaryBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
   hint: { fontSize: 12, color: Colors.muted, textAlign: 'center', marginTop: 10, lineHeight: 17 },
 
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1, borderColor: `${Colors.accent3}55`, borderRadius: 14, paddingVertical: 13, marginTop: 22,
+    borderWidth: 1.5, borderColor: Colors.accent3, backgroundColor: `${Colors.accent3}0d`,
+    borderRadius: 14, paddingVertical: 13, marginTop: 22,
   },
   dangerBtnText: { color: Colors.accent3, fontSize: 14, fontWeight: '700' },
 

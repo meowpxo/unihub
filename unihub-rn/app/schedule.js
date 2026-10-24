@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   timeLabel: { fontSize: 11, color: Colors.muted, width: 44, paddingTop: 14 },
   classCard: {
     flex: 1, backgroundColor: Colors.surface,
-    borderRadius: 16, padding: 14, borderLeftWidth: 3,
+    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, borderLeftWidth: 4,
   },
   className: { fontSize: 14, fontWeight: '600', color: Colors.text, marginBottom: 3 },
   classMeta: { fontSize: 12, color: Colors.muted },

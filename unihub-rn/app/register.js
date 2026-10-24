@@ -60,11 +60,11 @@ export default function RegisterScreen() {
   }
 
   const fields = [
-    { key: 'name',      label: 'Full Name',        icon: 'person',      iconColor: '#0b3d63', placeholder: 'Syed Muhammad Zulkifli',         type: 'default' },
-    { key: 'studentId', label: 'Student ID',        icon: 'school',      iconColor: '#38c9a0', placeholder: '52213224368',                   type: 'default' },
-    { key: 'email',     label: 'Email',             icon: 'mail',        iconColor: '#4f8ef7', placeholder: 'student@university.edu.my',     type: 'email-address' },
-    { key: 'password',  label: 'Password',          icon: 'lock-closed', iconColor: '#2dcfce', placeholder: 'Min. 6 characters',             secure: true },
-    { key: 'confirm',   label: 'Confirm Password',  icon: 'lock-closed', iconColor: '#e8604c', placeholder: 'Re-enter password',             secure: true },
+    { key: 'name',      label: 'Full Name',        icon: 'person',      iconColor: Colors.accent2, placeholder: 'Syed Muhammad Zulkifli',         type: 'default' },
+    { key: 'studentId', label: 'Student ID',        icon: 'school',      iconColor: Colors.accent4, placeholder: '52213224368',                   type: 'default' },
+    { key: 'email',     label: 'Email',             icon: 'mail',        iconColor: Colors.accent, placeholder: 'student@university.edu.my',     type: 'email-address' },
+    { key: 'password',  label: 'Password',          icon: 'lock-closed', iconColor: Colors.teal, placeholder: 'Min. 6 characters',             secure: true },
+    { key: 'confirm',   label: 'Confirm Password',  icon: 'lock-closed', iconColor: Colors.accent3, placeholder: 'Re-enter password',             secure: true },
   ];
 
   return (

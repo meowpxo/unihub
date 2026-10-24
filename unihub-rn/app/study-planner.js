@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 
-const DOW = ['#4f8ef7', '#38c9a0', '#0b3d63', '#f47c7c', '#e8604c', '#2dcfce', '#4f8ef7'];
+const DOW = [Colors.accent, Colors.accent4, Colors.accent2, Colors.warn, Colors.accent3, Colors.teal, Colors.accent];
 
 export default function StudyPlannerScreen() {
   const [loading, setLoading] = useState(false);
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.warn}12`, borderWidth: 1, borderColor: `${Colors.warn}33`,
     borderRadius: 16, padding: 16, marginTop: 4, marginBottom: 10,
   },
-  tipsLabel: { fontSize: 10, fontWeight: '800', color: '#c0392b', letterSpacing: 1, marginBottom: 8 },
+  tipsLabel: { fontSize: 10, fontWeight: '800', color: Colors.warn, letterSpacing: 1, marginBottom: 8 },
   tipRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
   tipBullet: { color: Colors.warn, fontWeight: '800' },
   tipText: { flex: 1, fontSize: 13, color: Colors.text, lineHeight: 19 },

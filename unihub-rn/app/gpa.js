@@ -326,8 +326,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 22, marginBottom: 12,
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
-  addCourseBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addBtn: { fontSize: 12, color: Colors.accent, fontWeight: '700' },
+  addCourseBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: `${Colors.accent}14`, borderWidth: 1, borderColor: `${Colors.accent}40`,
+    paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999,
+  },
+  addBtn: { fontSize: 13, color: Colors.accent, fontWeight: '700' },
 
   emptyBox: { alignItems: 'center', paddingVertical: 40 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
   courseName: { fontSize: 14, fontWeight: '600', color: Colors.text },
   courseCode: { fontSize: 11, color: Colors.muted, marginTop: 2 },
   courseGrade: { fontSize: 26, fontWeight: '800' },
-  progressTrack: { height: 6, backgroundColor: Colors.surface2 ?? '#2a3045', borderRadius: 99, overflow: 'hidden' },
+  progressTrack: { height: 6, backgroundColor: Colors.surface2, borderRadius: 99, overflow: 'hidden' },
   progressFill: { height: 6, borderRadius: 99 },
   progressPct: { fontSize: 11, color: Colors.muted, marginTop: 6 },
 
@@ -361,8 +365,11 @@ const styles = StyleSheet.create({
   delBtn: { padding: 4 },
   delBtnText: { color: Colors.accent3, fontSize: 14 },
 
-  deleteCourseBtn: { marginTop: 12, alignItems: 'center', paddingVertical: 8 },
-  deleteCourseBtnText: { fontSize: 12, color: Colors.accent3, fontWeight: '600' },
+  deleteCourseBtn: {
+    marginTop: 14, alignItems: 'center', paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1.5, borderColor: Colors.accent3, backgroundColor: `${Colors.accent3}0d`,
+  },
+  deleteCourseBtnText: { fontSize: 13, color: Colors.accent3, fontWeight: '700' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalCard: {

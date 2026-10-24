@@ -33,6 +33,8 @@ export default function GoogleCalendarScreen() {
       else Alert.alert('Google Calendar connected', data.message);
     } catch (e) {
       Alert.alert('Sync failed', e.message);
+      // Backend drops the link when access is gone — show the Connect button again
+      if (/connect/i.test(e.message)) setStatus(s => ({ ...s, connected: false }));
     } finally {
       setSyncing(false);
     }
@@ -82,12 +84,17 @@ export default function GoogleCalendarScreen() {
   }
 
   function handleDisconnect() {
-    Alert.alert('Disconnect Google Calendar', 'UniHub will stop updating your Google Calendar. The "UniHub" calendar stays in your Google account — you can delete it there.', [
+    Alert.alert('Disconnect Google Calendar', 'UniHub will stop syncing and remove the "UniHub" calendar (your classes, deadlines and academic dates) from your Google account. Your other Google calendars are not affected.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Disconnect', style: 'destructive',
         onPress: async () => {
-          try { await apiFetch('/google/disconnect', { method: 'POST' }); } catch {}
+          try {
+            const data = await apiFetch('/google/disconnect', { method: 'POST', timeoutMs: 30000 });
+            Alert.alert('Disconnected', data.message);
+          } catch (e) {
+            Alert.alert('Disconnect failed', e.message);
+          }
           await load();
         },
       },
@@ -194,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, padding: 22, alignItems: 'center', marginBottom: 24,
   },
   heroIcon: {
-    width: 56, height: 56, borderRadius: 18, backgroundColor: '#38c9a0',
+    width: 56, height: 56, borderRadius: 18, backgroundColor: Colors.accent4,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   heroTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
@@ -211,13 +218,16 @@ const styles = StyleSheet.create({
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: Colors.accent, borderRadius: 14, paddingVertical: 15, marginTop: 4,
+    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25, shadowRadius: 12, elevation: 5,
   },
   primaryBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
   hint: { fontSize: 12, color: Colors.muted, textAlign: 'center', marginTop: 10, lineHeight: 17 },
 
   dangerBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1, borderColor: `${Colors.accent3}55`, borderRadius: 14, paddingVertical: 13, marginTop: 22,
+    borderWidth: 1.5, borderColor: Colors.accent3, backgroundColor: `${Colors.accent3}0d`,
+    borderRadius: 14, paddingVertical: 13, marginTop: 22,
   },
   dangerBtnText: { color: Colors.accent3, fontSize: 14, fontWeight: '700' },
 

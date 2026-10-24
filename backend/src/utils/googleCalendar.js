@@ -20,10 +20,11 @@ const USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 const API          = 'https://www.googleapis.com/calendar/v3';
 
 // calendar.app.created = only calendars this app creates (not the user's others).
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
 const SCOPES = [
   'openid',
   'email',
-  'https://www.googleapis.com/auth/calendar.app.created',
+  CALENDAR_SCOPE,
 ];
 
 const TIME_ZONE = process.env.GOOGLE_CALENDAR_TZ || 'Asia/Kuala_Lumpur';
@@ -101,7 +102,13 @@ async function exchangeCode(code) {
   });
   const res  = await fetch(USERINFO_URL, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
   const info = await res.json().catch(() => ({}));
-  return { access_token: tokens.access_token, refresh_token: tokens.refresh_token, email: info.email || null };
+  return {
+    access_token:  tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    email:         info.email || null,
+    // Google lets the student untick individual permissions on the consent screen.
+    calendarGranted: String(tokens.scope || '').split(' ').includes(CALENDAR_SCOPE),
+  };
 }
 
 async function getAccessToken(refreshToken) {
@@ -131,8 +138,9 @@ async function api(accessToken, method, path, body) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const scopeMissing = res.status === 403 && /insufficient.*scope/i.test(data.error?.message || '');
     throw new GoogleError(data.error?.message || `Google Calendar error ${res.status}`,
-      res.status, res.status === 401 ? 'GOOGLE_AUTH' : undefined);
+      res.status, res.status === 401 ? 'GOOGLE_AUTH' : scopeMissing ? 'GOOGLE_SCOPE' : undefined);
   }
   return data;
 }
@@ -144,6 +152,11 @@ async function createCalendar(accessToken) {
     timeZone:    TIME_ZONE,
   });
   return cal.id;
+}
+
+// Removes the whole UniHub calendar (and every event in it) from the student's account.
+async function deleteCalendar(accessToken, calendarId) {
+  await api(accessToken, 'DELETE', `/calendars/${encodeURIComponent(calendarId)}`);
 }
 
 // Every event in the calendar (including cancelled ones, whose IDs stay reserved).
@@ -171,5 +184,5 @@ module.exports = {
   TIME_ZONE, GoogleError, isConfigured,
   encrypt, decrypt,
   buildAuthUrl, exchangeCode, getAccessToken, revoke,
-  createCalendar, listEvents, insertEvent, updateEvent, deleteEvent,
+  createCalendar, deleteCalendar, listEvents, insertEvent, updateEvent, deleteEvent,
 };
