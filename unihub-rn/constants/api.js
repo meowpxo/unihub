@@ -13,8 +13,9 @@ export async function apiFetch(path, options = {}) {
   const timer = setTimeout(() => controller.abort(), options.timeoutMs || 10000);
   try {
     const res  = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal: controller.signal });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Request failed');
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.message || `Request failed (server error ${res.status})`);
+    if (data === null) throw new Error('The server sent an empty reply. Please try again.');
     return data;
   } catch (e) {
     if (e.name === 'AbortError') throw new Error('Request timed out. Check your network or server.');

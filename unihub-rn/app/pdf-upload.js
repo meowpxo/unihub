@@ -50,8 +50,9 @@ export default function PdfUploadScreen() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
         body: form,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Upload failed (server error ${res.status})`);
+      if (!data.success) throw new Error('The server sent an incomplete reply. Please try again.');
       setResult(data);
       setSaved(false);
       setSavedTT(false);

@@ -32,9 +32,34 @@ function missingKeyMessage() {
 }
 
 // ── Gemini (free) via REST ──────────────────────────────────────────────────
+// Free-tier models are sometimes overloaded (503) or retired (404). When that
+// happens we move on to the next model instead of failing the student's request.
+// Override the backups with GEMINI_FALLBACK_MODELS (comma-separated).
+const RETRYABLE = new Set([404, 500, 502, 503, 504]);
+
+function geminiModels() {
+  const primary = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const backups = (process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash,gemini-flash-latest,gemini-3.5-flash-lite')
+    .split(',').map((m) => m.trim()).filter(Boolean);
+  return [...new Set([primary, ...backups])];
+}
+
 async function callGemini(system, user, maxTokens) {
+  let lastErr;
+  for (const model of geminiModels()) {
+    try {
+      return await callGeminiModel(model, system, user, maxTokens);
+    } catch (e) {
+      lastErr = e;
+      if (!RETRYABLE.has(e.status)) throw e;   // bad key, quota, blocked prompt: another model won't help
+      console.warn(`gemini ${model} unavailable (${e.status}: ${e.message}) — trying next model`);
+    }
+  }
+  throw lastErr;
+}
+
+async function callGeminiModel(model, system, user, maxTokens) {
   const key = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
   const body = {
@@ -202,4 +227,185 @@ async function studyPlan(req, res) {
   }
 }
 
-module.exports = { studyPlan };
+// ══════════════════════════════════════════════════════════════════════════════
+// Exam Prep — predict upcoming quizzes/tests/final exam from the course CLP and
+// generate the possible question format, aligned with the Course Learning Outcomes.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const portal = require('../utils/portalClient');
+const { clpToText } = require('../utils/clpReader');
+
+const TIME_ZONE = process.env.GOOGLE_CALENDAR_TZ || 'Asia/Kuala_Lumpur';
+const todayLocal = () => new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date()); // YYYY-MM-DD
+
+// One prediction per student + course + CLP version + day, so reopening the
+// screen doesn't spend another AI call. "Regenerate" bypasses it.
+const examPrepCache = new Map();
+
+async function portalTokenFor(userId) {
+  const [[row]] = await db.query('SELECT portal_token FROM portal_links WHERE user_id = ?', [userId]);
+  return row?.portal_token || null;
+}
+
+function portalError(res, e, fallback) {
+  if (e.code === 'PORTAL_AUTH') {
+    return res.status(401).json({ success: false, needsConnect: true,
+      message: 'Your portal session expired — reconnect your Student Portal and try again.' });
+  }
+  console.error(fallback, e.message);
+  return res.status(502).json({ success: false, message: e.message || 'Could not reach the student portal.' });
+}
+
+const latestClp = (materials) =>
+  (materials || []).filter((m) => m.kind === 'clp' && m.stored_name)
+    .sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at))[0] || null;
+
+// ── GET /api/ai/exam-prep/courses ───────────────────────────────────────────
+// The student's portal courses, and whether each has a CLP to predict from.
+async function examPrepCourses(req, res) {
+  try {
+    const token = await portalTokenFor(req.user.id);
+    if (!token) {
+      return res.json({ success: true, connected: false, courses: [],
+        message: 'Connect your Student Portal first (Profile → Student Portal) so UniHub can read your course CLPs.' });
+    }
+    let courses;
+    try {
+      const data = await portal.getCourses(token);
+      courses = await Promise.all((data.courses || []).map(async (c) => {
+        const mats = await portal.getCourseMaterials(token, c.code).then((d) => d.materials).catch(() => []);
+        const clp = latestClp(mats);
+        return { code: c.code, name: c.name, lecturer: c.lecturer, has_clp: !!clp, clp_title: clp?.title || null };
+      }));
+    } catch (e) {
+      return portalError(res, e, 'exam-prep courses error:');
+    }
+    courses.sort((a, b) => Number(b.has_clp) - Number(a.has_clp) || a.code.localeCompare(b.code));
+    return res.json({ success: true, connected: true, courses });
+  } catch (err) {
+    console.error('examPrepCourses error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+// ── POST /api/ai/exam-prep  { course_code, refresh? } ───────────────────────
+async function examPrep(req, res) {
+  try {
+    const code = String(req.body?.course_code || '').trim();
+    if (!code) return res.status(400).json({ success: false, message: 'Choose a course' });
+    if (!aiConfigured()) return res.status(503).json({ success: false, message: missingKeyMessage() });
+
+    const token = await portalTokenFor(req.user.id);
+    if (!token) {
+      return res.status(400).json({ success: false, needsConnect: true,
+        message: 'Connect your Student Portal first (Profile → Student Portal).' });
+    }
+
+    // 1. Find and read the course's CLP from the portal.
+    let clp, clpText;
+    try {
+      const { materials } = await portal.getCourseMaterials(token, code);
+      clp = latestClp(materials);
+      if (!clp) {
+        return res.json({ success: true, noClp: true,
+          message: 'Your lecturer hasn\'t uploaded a Course Learning Plan for this course yet.' });
+      }
+      const today = todayLocal();
+      const key = `${req.user.id}|${code}|${clp.id}|${clp.uploaded_at}|${today}`;
+      if (!req.body?.refresh && examPrepCache.has(key)) {
+        return res.json({ success: true, cached: true, ...examPrepCache.get(key) });
+      }
+      const file = await portal.downloadMaterial(token, clp.id);
+      clpText = await clpToText(file.buffer, clp.original_name);
+    } catch (e) {
+      if (e.code === 'UNSUPPORTED') return res.status(422).json({ success: false, message: e.message });
+      return portalError(res, e, 'exam-prep CLP error:');
+    }
+
+    // 2. Ask the AI to read the schedule and predict the coming assessments.
+    const today = todayLocal();
+    const system =
+      'You are an academic assessment advisor helping a university student prepare for exams. ' +
+      'You read Course Learning Plans (CLP) precisely and never invent assessments, topics or CLOs ' +
+      'that are not supported by the CLP. Predicted questions must only test topics that appear in ' +
+      'the CLP, and every question must map to a real CLO from the CLP. ' +
+      'Respond with ONLY a valid JSON object, no prose, no markdown.';
+
+    const user =
+      `Today is ${today} (time zone ${TIME_ZONE}).\n\n` +
+      `Course Learning Plan for ${code} (extracted from "${clp.original_name}"):\n` +
+      `"""\n${clpText}\n"""\n\n` +
+      'Tasks:\n' +
+      '1. From the learning schedule and its dates, work out the current teaching week and which weeks are ' +
+      'already finished (a week is finished when its end date is before today). Use the year/semester in the CLP to ' +
+      'interpret dates. Skip break weeks.\n' +
+      '2. List the finished weeks with their topics and CLOs.\n' +
+      '3. Find every UPCOMING written assessment in the schedule or assessment table: quizzes, tests, mid-term, ' +
+      'lab test, final test / final exam. Ignore assessments already in the past. For each, give its week and date ' +
+      'range from the CLP, weightage from the assessment table, which weeks/topics it most likely covers (topics ' +
+      'taught before it), and the CLOs it assesses (from the CLO-assessment mapping).\n' +
+      '4. For each upcoming assessment, predict the POSSIBLE QUESTION FORMAT as sections (e.g. MCQ, short answer, ' +
+      'structured, code-writing/analysis, case study), with an estimated number of questions and marks, the Bloom\'s ' +
+      'taxonomy level and the CLO each section targets. Base the style on the assessment method and the CLO wording ' +
+      '(e.g. "build/write" → practical or code-writing; "analyse, formulate and solve" → problem-solving/case study).\n' +
+      '5. Give 4-6 realistic practice questions per assessment, written about the FINISHED topics first (mark any ' +
+      'that use not-yet-taught topics as such), each tagged with its CLO, Bloom level, topic and suggested marks.\n' +
+      '6. If the course has no upcoming written assessment (e.g. project-based), return an empty "upcoming" list and ' +
+      'explain in "notes" how the course is assessed.\n\n' +
+      'Return JSON in EXACTLY this shape:\n' +
+      '{\n' +
+      '  "course": { "code": "...", "name": "..." },\n' +
+      '  "current_week": { "number": 3, "label": "Week 3", "dates": "26 Oct - 1 Nov", "status": "short phrase" },\n' +
+      '  "clos": [ { "id": "CLO1", "description": "...", "assessed_by": "e.g. Test, Final Test" } ],\n' +
+      '  "completed": [ { "week": "Week 1", "topics": ["..."], "clos": ["CLO1"] } ],\n' +
+      '  "upcoming": [ {\n' +
+      '      "name": "Test 1", "type": "quiz|test|midterm|lab_test|final|other",\n' +
+      '      "week": "Week 5", "dates": "9 - 15 Nov", "days_away": 10, "weightage": "20%",\n' +
+      '      "covers": ["topic", "..."], "clos": ["CLO1", "CLO3"],\n' +
+      '      "confidence": "high|medium|low", "why": "one sentence on how this was predicted",\n' +
+      '      "format": [ { "section": "Section A", "question_type": "MCQ", "questions": 10, "marks": 20,\n' +
+      '                   "bloom": "Remember/Understand", "clo": "CLO1", "description": "what this section tests" } ],\n' +
+      '      "practice_questions": [ { "question": "...", "type": "MCQ|Short answer|Structured|Code|Case study",\n' +
+      '                   "clo": "CLO1", "bloom": "Apply", "topic": "...", "marks": 5, "taught": true } ],\n' +
+      '      "prep_tips": ["..."]\n' +
+      '  } ],\n' +
+      '  "notes": "1-2 sentences of caveats, e.g. that this is a prediction from the CLP, not the real paper"\n' +
+      '}\n' +
+      'Order "upcoming" by date. Keep text concise.';
+
+    let text;
+    try {
+      text = await callLLM(system, user, 12000);
+    } catch (e) {
+      console.error(`${AI_PROVIDER} exam-prep error:`, e.message);
+      const msg = e?.status === 401 || e?.status === 403
+        ? 'AI authentication failed. Check your API key.'
+        : e?.status === 429
+          ? 'AI rate limit reached. Please wait a moment and try again.'
+          : 'Could not generate predictions right now. Please try again.';
+      return res.status(502).json({ success: false, message: msg });
+    }
+
+    let prediction;
+    try {
+      prediction = parsePlanJson(text);
+    } catch (e) {
+      console.error('exam-prep parse error:', e.message, '\nraw:', String(text).slice(0, 500));
+      return res.status(502).json({ success: false, message: 'Could not read the AI\'s prediction. Please try again.' });
+    }
+
+    const result = {
+      prediction,
+      clp: { title: clp.title, file: clp.original_name, uploaded_at: clp.uploaded_at, lecturer: clp.lecturer_name },
+      provider: AI_PROVIDER,
+      generated_at: new Date().toISOString(),
+    };
+    examPrepCache.set(`${req.user.id}|${code}|${clp.id}|${clp.uploaded_at}|${today}`, result);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('examPrep error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+module.exports = { studyPlan, examPrepCourses, examPrep };

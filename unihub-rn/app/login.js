@@ -45,8 +45,9 @@ export default function LoginScreen() {
       } finally {
         clearTimeout(timer);
       }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login failed');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Login failed (server error ${res.status}). Please try again.`);
+      if (!data.token) throw new Error('The server sent an incomplete reply. Please try again.');
       await AsyncStorage.setItem('unihub_token', data.token);
       await AsyncStorage.setItem('unihub_user', JSON.stringify(data.user));
       router.replace('/');

@@ -56,6 +56,24 @@ async function portalGet(path, token) {
   return data;
 }
 
+// Download a course material file (e.g. the CLP) with the student's session token.
+// Returns { buffer, contentType }.
+async function downloadMaterial(token, id) {
+  const res = await portalFetch(`/api/portal/materials/${encodeURIComponent(id)}/file`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    const err = new Error('Portal session expired');
+    err.code = 'PORTAL_AUTH';
+    throw err;
+  }
+  if (!res.ok) throw new Error('Could not download the file from the portal');
+  return {
+    buffer: Buffer.from(await res.arrayBuffer()),
+    contentType: res.headers.get('content-type') || '',
+  };
+}
+
 module.exports = {
   PORTAL_URL,
   portalLogin,
@@ -63,4 +81,7 @@ module.exports = {
   getTimetable:   (t) => portalGet('/api/portal/timetable', t),
   getGrades:      (t) => portalGet('/api/portal/grades', t),
   getAssignments: (t) => portalGet('/api/portal/assignments', t),
+  getCourses:     (t) => portalGet('/api/portal/courses', t),
+  getCourseMaterials: (t, code) => portalGet(`/api/portal/courses/${encodeURIComponent(code)}/materials`, t),
+  downloadMaterial,
 };

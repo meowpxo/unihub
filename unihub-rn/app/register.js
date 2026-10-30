@@ -47,8 +47,9 @@ export default function RegisterScreen() {
           password: form.password,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Registration failed');
+      // An empty/garbled reply shouldn't surface as "JSON Parse error"
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Registration failed (server error ${res.status}). Please try again.`);
       Alert.alert('Account Created!', 'You can now sign in.', [
         { text: 'Sign In', onPress: () => router.replace('/login') },
       ]);
