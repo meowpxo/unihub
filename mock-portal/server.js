@@ -16,10 +16,13 @@
  */
 
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { STUDENT, courseOverview, moodleAssignments } = require('./data');
+const multer = require('multer');
+const { STUDENT, CATALOG, courseOverview, moodleAssignments } = require('./data');
 const store = require('./store');
+const lecturers = require('./lecturers');
 
 // In-memory session tokens issued at login (dev only; cleared on restart).
 // Accounts themselves are persisted by store.js — only live sessions are here.
@@ -214,6 +217,193 @@ app.get('/api/portal/grades', (req, res) => {
   });
 
   res.json({ success: true, courses });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Lecturer area — course materials: CLP, slide notes, sheets, links (UI: /lecturer.html)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const LECTURER_SESSIONS = new Map(); // token -> lecturer record (dev only; cleared on restart)
+
+function sessionLecturer(req) {
+  const token = bearer(req);
+  return token ? LECTURER_SESSIONS.get(token) || null : null;
+}
+
+const courseName = (code) => (CATALOG.find(c => c.code === code) || {}).name || code;
+
+// For testing, any lecturer can post to every course in the catalog. The courses
+// they actually teach come first and are flagged, so the page still reads naturally.
+function lecturerCourses(lecturer) {
+  const own = lecturer.courses.map(code => ({ code, name: courseName(code), teaches: true }));
+  const rest = CATALOG.filter(c => !lecturer.courses.includes(c.code))
+    .map(c => ({ code: c.code, name: c.name, teaches: false }));
+  return [...own, ...rest];
+}
+const canPostTo = (lecturer, code) => lecturerCourses(lecturer).some(c => c.code === code);
+
+// Allowed uploads: PDF, PowerPoint, Word and Excel, max 25 MB. Saved under
+// uploads/learning-plans/ with a random name that keeps the real extension.
+const FILE_TYPES = {
+  '.pdf':  'application/pdf',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.ppt':  'application/vnd.ms-powerpoint',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.doc':  'application/msword',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+  '.xls':  'application/vnd.ms-excel',
+  '.csv':  'text/csv',
+};
+const ALLOWED_LABEL = 'PDF, PowerPoint, Word or Excel';
+const fileExt = (name) => (String(name).toLowerCase().match(/\.(pdf|pptx|ppt|docx|doc|xlsx|xlsm|xls|csv)$/) || [])[0] || null;
+
+const materialUpload = multer({
+  storage: multer.diskStorage({
+    destination: lecturers.UPLOAD_DIR,
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${fileExt(file.originalname)}`),
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = !!fileExt(file.originalname);
+    cb(ok ? null : Object.assign(new Error(`Only ${ALLOWED_LABEL} files are allowed`), { code: 'BAD_TYPE' }), ok);
+  },
+}).single('file');
+
+// PDFs open in the browser; other files download with their original name.
+function sendMaterialFile(res, m) {
+  const ext = fileExt(m.stored_name) || '.pdf';
+  const disposition = ext === '.pdf' ? 'inline' : 'attachment';
+  res.type(FILE_TYPES[ext]).sendFile(lecturers.filePath(m), {
+    headers: { 'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(m.original_name)}` },
+  });
+}
+
+// POST /api/lecturer/login  { username, password }  (staff ID or email)
+app.post('/api/lecturer/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const lecturer = lecturers.authenticate(username, password);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Invalid staff ID or password' });
+  const token = 'lect-' + crypto.randomBytes(16).toString('hex');
+  LECTURER_SESSIONS.set(token, lecturer);
+  console.log(`[mock-portal] lecturer login OK: ${lecturer.staff_id}`);
+  res.json({ success: true, token, lecturer: lecturers.publicLecturer(lecturer) });
+});
+
+app.get('/api/lecturer/me', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+  res.json({
+    success: true,
+    lecturer: lecturers.publicLecturer(lecturer),
+    courses: lecturerCourses(lecturer),
+    kinds: lecturers.KINDS,
+    sections: lecturers.SECTIONS,
+  });
+});
+
+app.post('/api/lecturer/logout', (req, res) => {
+  const token = bearer(req);
+  if (token) LECTURER_SESSIONS.delete(token);
+  res.json({ success: true });
+});
+
+// The signed-in lecturer's materials, across all their courses.
+app.get('/api/lecturer/materials', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+  res.json({ success: true, materials: lecturers.materialsByLecturer(lecturer.staff_id) });
+});
+
+// POST /api/lecturer/materials  multipart:
+//   course_code, section, kind, title, notes?  +  file (any kind except link)  or  url (kind=link)
+app.post('/api/lecturer/materials', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+
+  materialUpload(req, res, (err) => {
+    if (err) {
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 25 MB)' : err.message;
+      return res.status(400).json({ success: false, message });
+    }
+    const discard = () => { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} };
+    const fail = (code, message) => { discard(); return res.status(code).json({ success: false, message }); };
+
+    const { course_code, section, kind, title, notes, url } = req.body || {};
+    if (!lecturers.KINDS[kind]) return fail(400, 'Choose what type of material this is');
+    if (!lecturers.SECTIONS.includes(section)) return fail(400, 'Choose a section (General or a week)');
+    if (!String(title || '').trim()) return fail(400, 'A title is required');
+    if (!canPostTo(lecturer, course_code)) return fail(400, 'Choose a course from the list');
+
+    let link = null;
+    if (kind === 'link') {
+      link = String(url || '').trim();
+      if (!/^https?:\/\/\S+$/i.test(link)) return fail(400, 'Enter a full link starting with http:// or https://');
+      discard();   // links don't carry a file
+    } else if (!req.file) {
+      return fail(400, `Choose a ${ALLOWED_LABEL} file to upload`);
+    }
+
+    const m = lecturers.addMaterial({
+      lecturer, course_code, course_name: courseName(course_code),
+      section, kind, title: String(title).trim().slice(0, 150),
+      notes: String(notes || '').trim().slice(0, 500),
+      file: kind === 'link' ? null : req.file, url: link,
+    });
+    console.log(`[mock-portal] material posted: ${m.course_code} ${m.section} ${m.kind} by ${lecturer.staff_id}`);
+    res.status(201).json({ success: true, material: m });
+  });
+});
+
+// View/download a material's file (lecturer: own materials only).
+app.get('/api/lecturer/materials/:id/file', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+  const m = lecturers.materialById(req.params.id);
+  if (!m || m.lecturer_id !== lecturer.staff_id || !m.stored_name) return res.status(404).json({ success: false, message: 'File not found' });
+  sendMaterialFile(res, m);
+});
+
+// PATCH /api/lecturer/materials/:id  { title }  — rename (lecturer: own materials only)
+app.patch('/api/lecturer/materials/:id', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+  const m = lecturers.materialById(req.params.id);
+  if (!m || m.lecturer_id !== lecturer.staff_id) return res.status(404).json({ success: false, message: 'Material not found' });
+  const title = String((req.body || {}).title || '').trim().slice(0, 150);
+  if (!title) return res.status(400).json({ success: false, message: 'A title is required' });
+  res.json({ success: true, material: lecturers.renameMaterial(m.id, title) });
+});
+
+app.delete('/api/lecturer/materials/:id', (req, res) => {
+  const lecturer = sessionLecturer(req);
+  if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
+  const m = lecturers.materialById(req.params.id);
+  if (!m || m.lecturer_id !== lecturer.staff_id) return res.status(404).json({ success: false, message: 'Material not found' });
+  lecturers.deleteMaterial(m.id);
+  res.json({ success: true });
+});
+
+// ── Student side: course content for the courses the student is enrolled in ───
+const enrolledCodes = (student) => (student.data.courseCards || []).map(c => c.code);
+
+app.get('/api/portal/courses/:code/materials', (req, res) => {
+  const student = sessionStudent(req);
+  if (!student) return res.status(401).json({ success: false, message: 'Not logged in' });
+  if (!enrolledCodes(student).includes(req.params.code)) {
+    return res.status(404).json({ success: false, message: 'You are not enrolled in this course' });
+  }
+  res.json({ success: true, materials: lecturers.materialsForCourse(req.params.code) });
+});
+
+app.get('/api/portal/materials/:id/file', (req, res) => {
+  const student = sessionStudent(req);
+  if (!student) return res.status(401).json({ success: false, message: 'Not logged in' });
+  const m = lecturers.materialById(req.params.id);
+  if (!m || !m.stored_name || !enrolledCodes(student).includes(m.course_code)) {
+    return res.status(404).json({ success: false, message: 'File not found' });
+  }
+  sendMaterialFile(res, m);
 });
 
 // ── Health + index ────────────────────────────────────────────────────────────

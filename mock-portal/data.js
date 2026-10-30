@@ -270,6 +270,6 @@ function courseOverview(cards) {
 }
 
 module.exports = {
-  STUDENT, COURSES, moodleAssignments, seedData, courseOverview,
+  STUDENT, COURSES, CATALOG, moodleAssignments, seedData, courseOverview,
   generateStudentData, randomProgramme,
 };

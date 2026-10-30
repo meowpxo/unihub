@@ -52,6 +52,24 @@ UI stores it in `localStorage` and sends it as `Authorization: Bearer <token>`.
 This is **mock auth for development/demo only** — not real security, and not a
 clone of any real institution's sign-in.
 
+## Lecturer area — course materials
+
+Open **http://localhost:4000/lecturer.html** (or click **Lecturer login →** on the
+portal landing page). Lecturers post materials for the courses they teach, each
+in a section — **General** or **Week 1–14** — like a VLE course page:
+
+- **Course Learning Plan (CLP)**, **Slide Notes**, **Tutorial / Lab Sheet**, **Document**
+  — PDF, PowerPoint, Word or Excel, max 25 MB
+- **Link** — e.g. WhatsApp group, lecture recording, online class
+
+**Demo lecturers** (defined in `lecturers.js`), password `lecturer123`:
+`L1001` Dr. Aminah · `L1002` Mr. Faisal · `L1003` Dr. Lim
+
+Students see everything under **Course content** when they open a course in the
+portal (`GET /api/portal/courses/:code/materials`). Items are saved to
+`course-materials.json` and files to `uploads/learning-plans/` (both git-ignored).
+Plans from the older `learning-plans.json` are carried over automatically as CLPs.
+
 ## Endpoints
 
 | Endpoint | Shape | Maps to |

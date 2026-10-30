@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UniKL VLE — Lecturer (Mock)</title>
+<style>
+  :root{
+    --bg:#eef1f7; --card:#ffffff; --line:#e6eaf2; --text:#1e2748; --muted:#6b7596;
+    --brand:#07367e; --brand-2:#1b5fc4; --gold:#f6b40a; --orange:#e8720c;
+    --green:#1aa06d; --amber:#f0a429; --red:#e5484d;
+    --shadow:0 2px 10px rgba(24,40,90,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .hidden{display:none !important}
+  button,input,select,textarea{font-family:inherit}
+
+  /* ── Login ── */
+  #auth{min-height:100vh;display:flex;flex-direction:column}
+  .vle-nav{display:flex;align-items:center;gap:14px;padding:14px 32px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:#12203f}
+  .brand .mk{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--orange));display:grid;place-items:center;color:var(--brand);font-weight:900}
+  .brand small{display:block;font-size:10px;font-weight:600;color:#5b6b8c;letter-spacing:1px}
+  .spacer{flex:1}
+  .mockbadge{font-size:11px;font-weight:700;color:#6a4a00;background:#ffe3a3;padding:5px 12px;border-radius:999px;border:1px solid #f4cf7a;white-space:nowrap}
+  .navlink{font-size:13px;color:var(--brand-2);font-weight:600;text-decoration:none}
+  .navlink:hover{text-decoration:underline}
+  .auth-hero{flex:1;display:grid;place-items:center;padding:40px 20px;
+    background:radial-gradient(900px 500px at 10% -10%,rgba(239,138,27,.30) 0%,transparent 55%),linear-gradient(135deg,#072a63,#0a1b3f)}
+  .login-card{background:#fff;border-radius:18px;padding:30px 28px;box-shadow:0 30px 70px rgba(0,0,0,.45);max-width:400px;width:100%}
+  .login-card .role{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--brand-2);background:#e6efff;padding:5px 10px;border-radius:999px;margin-bottom:12px}
+  .login-card h2{margin:0 0 4px;font-size:21px}
+  .login-card .lead{margin:0 0 22px;color:#64708f;font-size:13px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:700;color:#44527a;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid #d7ddec;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;transition:.15s}
+  .field textarea{resize:vertical;min-height:62px}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(27,95,196,.15)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border:0;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;color:#fff;background:var(--brand-2);transition:.15s}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)} .btn[disabled]{opacity:.55;cursor:default;filter:none;transform:none}
+  .btn.block{width:100%}
+  .btn.ghost{background:#fff;color:var(--brand-2);border:1.5px solid var(--brand-2)}
+  .btn.danger{background:#fff;color:var(--red);border:1.5px solid var(--red)}
+  .btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+  .msg{padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:14px}
+  .msg.err{background:#ffe9e9;color:#b32020;border:1px solid #ffc9c9}
+  .msg.ok{background:#e4f6ea;color:#1f7a46;border:1px solid #cdebd7}
+  .demo-hint{margin-top:18px;background:#f1f4fb;border:1px dashed #c7d0e8;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#4a567a}
+  .demo-hint b{color:var(--brand-2)}
+  .foot{background:#0b1024;color:#8390b5;text-align:center;font-size:12px;padding:14px}
+
+  /* ── Dashboard ── */
+  .topnav{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--line);padding:0 22px;height:60px;position:sticky;top:0;z-index:10}
+  .who{display:flex;align-items:center;gap:10px}
+  .who .meta{font-size:13px;line-height:1.2;text-align:right}
+  .who .meta b{display:block} .who .meta span{color:var(--muted);font-size:11px}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand-2),var(--orange));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+  .logout{background:#f2f4fa;border:1px solid var(--line);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer;font-size:13px}
+  .logout:hover{color:var(--text)}
+
+  main{max-width:1240px;margin:0 auto;padding:24px 22px 40px}
+  .page-title{font-size:22px;font-weight:800;margin:0 0 4px}
+  .page-sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+
+  .courses{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-bottom:24px}
+  .course{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+  .course:hover{border-color:#bcd0f3}
+  .course.active{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(27,95,196,.12)}
+  .course .code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--muted)}
+  .course .name{font-weight:700;font-size:14px;line-height:1.3}
+  .course .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .pill{font-size:11px;font-weight:800;letter-spacing:.2px;padding:3px 8px;border-radius:999px}
+  .pill.ok{background:#e3f7ee;color:#127a52}
+  .pill.missing{background:#fff2d9;color:#9a5b00}
+  .pill.n{background:#eef2fa;color:#44527a}
+  .pill.teach{background:#e6efff;color:#1b4fb0}
+
+  .grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:22px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px}
+  .card h3{margin:0 0 4px;font-size:17px}
+  .card .sub{margin:0 0 16px;color:var(--muted);font-size:13px}
+
+  .drop{border:2px dashed #c3cde3;border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;background:#f7f9fe;transition:.15s}
+  .drop:hover,.drop.over{border-color:var(--brand-2);background:#eef4ff}
+  .drop .ic{font-size:26px}
+  .drop .t{font-weight:700;font-size:14px;margin-top:6px;word-break:break-all}
+  .drop .h{color:var(--muted);font-size:12px;margin-top:3px}
+  .drop.has{border-style:solid;border-color:var(--green);background:#effaf4}
+  .progress{height:8px;background:#e6eaf2;border-radius:99px;overflow:hidden;margin:14px 0 4px}
+  .progress div{height:100%;width:0;background:var(--brand-2);transition:width .15s}
+
+  /* course page preview — same look students get */
+  .preview-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .preview-head .spacer{flex:1}
+  .sec{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;background:#fff}
+  .sec > .sh{display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:800;font-size:15px}
+  .sec > .sh .cnt{font-size:12px;font-weight:600;color:var(--muted)}
+  .item{display:flex;align-items:flex-start;gap:12px;margin:0 12px 10px;padding:12px 14px;border:1px solid #f3dc9c;border-radius:10px;background:#fffdf7}
+  .item .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:17px;flex:0 0 34px;background:#eef4ff}
+  .item .bd{flex:1;min-width:0}
+  .item .tt{font-weight:700;font-size:14px;color:var(--brand);word-break:break-word}
+  .item .mt{color:var(--muted);font-size:12px;margin-top:3px}
+  .item .nt{color:#44527a;font-size:12.5px;margin-top:4px;font-style:italic}
+  .item .acts{display:flex;gap:6px;flex-shrink:0}
+  .kind{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:5px;margin-right:6px;vertical-align:1px;background:#eef2fa;color:#44527a}
+  .kind.clp{background:#e6efff;color:#1b4fb0}
+  .kind.slides{background:#fff0e0;color:#a14e00}
+  .kind.tutorial{background:#efe9ff;color:#5b3fa8}
+  .kind.link{background:#e3f7ee;color:#127a52}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
+
+  @media (max-width:960px){ .grid{grid-template-columns:1fr} }
+  @media (max-width:640px){
+    .vle-nav,.topnav{padding:10px 16px} .who .meta{display:none} .mockbadge{display:none}
+    main{padding:18px 16px 32px} .row2{grid-template-columns:1fr}
+    .item{flex-wrap:wrap} .item .acts{width:100%;padding-left:46px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="auth">
+  <nav class="vle-nav">
+    <div class="brand"><span class="mk">U</span><span>UniKL<small>VLE · LECTURER</small></span></div>
+    <div class="spacer"></div>
+    <a class="navlink" href="/">Student portal →</a>
+    <span class="mockbadge">● MOCK PORTAL · DEV ONLY</span>
+  </nav>
+  <section class="auth-hero">
+    <form class="login-card" id="loginForm">
+      <span class="role">👩‍🏫 LECTURER ACCESS</span>
+      <h2>Lecturer sign in</h2>
+      <p class="lead">Sign in to post learning plans, slide notes and links for your courses.</p>
+      <div id="loginErr" class="msg err hidden"></div>
+      <div class="field">
+        <label for="lu">Staff ID or email</label>
+        <input id="lu" autocomplete="username" placeholder="e.g. L1001" required>
+      </div>
+      <div class="field">
+        <label for="lp">Password</label>
+        <input id="lp" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <button class="btn block" id="loginBtn" type="submit">Sign in</button>
+      <div class="demo-hint">
+        Demo lecturer — Staff ID <b>L1001</b>, password <b>lecturer123</b><br>
+        (also <b>L1002</b> and <b>L1003</b>, same password)
+      </div>
+    </form>
+  </section>
+  <footer class="foot">UniKL VLE (development mock) · not affiliated with any institution · all data is fictional</footer>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div id="app" class="hidden">
+  <header class="topnav">
+    <div class="brand"><span class="mk">U</span><span>UniKL<small>VLE · LECTURER</small></span></div>
+    <div class="spacer"></div>
+    <span class="mockbadge">● MOCK</span>
+    <div class="who">
+      <div class="meta"><b id="whoName">—</b><span id="whoId">—</span></div>
+      <div class="avatar" id="whoAv">?</div>
+    </div>
+    <button class="logout" id="logoutBtn">Log out</button>
+  </header>
+
+  <main>
+    <h1 class="page-title">Course Materials</h1>
+    <p class="page-sub">Post the Course Learning Plan, weekly slide notes, tutorial sheets and useful links for each course you teach. Students see them on the course page in the portal.</p>
+
+    <div class="courses" id="courses"></div>
+
+    <div class="grid">
+      <!-- Upload form -->
+      <form class="card" id="upForm">
+        <h3>Add course material</h3>
+        <p class="sub" id="upSub">PDF, PowerPoint, Word or Excel — up to 25 MB.</p>
+        <div id="upMsg" class="msg hidden"></div>
+
+        <div class="field">
+          <label for="course">Course</label>
+          <select id="course" required></select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="kind">Type</label>
+            <select id="kind" required></select>
+          </div>
+          <div class="field">
+            <label for="section">Section</label>
+            <select id="section" required></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" maxlength="150" required>
+        </div>
+        <div class="field hidden" id="urlField">
+          <label for="url">Link URL</label>
+          <input id="url" type="url" placeholder="https://chat.whatsapp.com/…  or  https://teams.microsoft.com/…">
+        </div>
+        <div class="field">
+          <label for="notes">Note for students <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <textarea id="notes" maxlength="500" placeholder="e.g. Read before Week 3 class."></textarea>
+        </div>
+
+        <div id="fileArea">
+          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a file">
+            <div class="ic" id="dropIc">📄</div>
+            <div class="t" id="dropT">Click to choose a file</div>
+            <div class="h" id="dropH">or drag and drop it here</div>
+          </div>
+          <div id="dropErr" class="msg err hidden" style="margin:10px 0 0"></div>
+          <div id="autoHint" class="msg ok hidden" style="margin:10px 0 0"></div>
+          <input type="file" id="file" class="hidden" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.xlsm,.csv">
+        </div>
+
+        <div class="progress hidden" id="prog"><div id="progBar"></div></div>
+        <button class="btn block" id="upBtn" type="submit" style="margin-top:16px" disabled>⬆ Upload</button>
+      </form>
+
+      <!-- Course page preview -->
+      <section class="card">
+        <div class="preview-head">
+          <div>
+            <h3 id="pvTitle">Course page</h3>
+            <p class="sub" style="margin:0" id="pvSub">This is what enrolled students see.</p>
+          </div>
+        </div>
+        <div id="preview"></div>
+      </section>
+    </div>
+  </main>
+  <footer class="foot">UniKL VLE (development mock) · not affiliated with any institution · all data is fictional</footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const fmtSize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+  const fmtDate = (iso) => new Date(iso).toLocaleString('en-MY', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const ALLOWED = /\.(pdf|pptx|ppt|docx|doc|xlsx|xlsm|xls|csv)$/i;
+  const MAX_BYTES = 25 * 1024 * 1024;
+  const KIND_ICON = { clp: '📘', slides: '🖥️', tutorial: '📝', other: '📄', link: '🔗' };
+  const sectionLabel = (s) => s === 'general' ? 'General' : 'Week ' + s.replace('week-', '');
+  const fileIcon = (name) => /\.pptx?$/i.test(name) ? '🖥️' : /\.(xlsx|xlsm|xls|csv)$/i.test(name) ? '📊' : /\.docx?$/i.test(name) ? '📝' : '📄';
+  const fileTag = (name) => (String(name).match(/\.([a-z]+)$/i) || [, ''])[1].toUpperCase();
+
+  const TOKEN_KEY = 'lecturer_token';
+  let token = null;
+  try { token = localStorage.getItem(TOKEN_KEY); } catch {}
+  let me = null, courses = [], kinds = {}, sections = [], materials = [];
+  let activeCourse = null, chosenFile = null, titleTouched = false;
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      ...opts,
+      headers: { ...(opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+                 ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opts.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.message || 'Request failed'), { status: res.status });
+    return data;
+  }
+
+  function setToken(t) {
+    token = t;
+    try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {}
+  }
+
+  function show(which) {
+    $('auth').classList.toggle('hidden', which !== 'auth');
+    $('app').classList.toggle('hidden', which !== 'app');
+  }
+
+  // ── Login / logout ──
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginErr').classList.add('hidden');
+    $('loginBtn').disabled = true;
+    try {
+      const data = await api('/api/lecturer/login', {
+        method: 'POST', body: JSON.stringify({ username: $('lu').value, password: $('lp').value }),
+      });
+      setToken(data.token);
+      $('lp').value = '';
+      await enter();
+    } catch (err) {
+      $('loginErr').textContent = err.message;
+      $('loginErr').classList.remove('hidden');
+    } finally {
+      $('loginBtn').disabled = false;
+    }
+  });
+
+  $('logoutBtn').addEventListener('click', async () => {
+    try { await api('/api/lecturer/logout', { method: 'POST' }); } catch {}
+    setToken(null);
+    show('auth');
+  });
+
+  async function enter() {
+    const data = await api('/api/lecturer/me');
+    me = data.lecturer; courses = data.courses; kinds = data.kinds; sections = data.sections;
+    $('whoName').textContent = me.name;
+    $('whoId').textContent = 'Staff ID ' + me.staff_id;
+    $('whoAv').textContent = me.name.replace(/^(Dr|Mr|Ms|Mdm)\.?\s+/i, '').slice(0, 2).toUpperCase();
+    const opt = (c) => `<option value="${esc(c.code)}">${esc(c.code)} — ${esc(c.name)}</option>`;
+    $('course').innerHTML =
+      `<optgroup label="Courses you teach">${courses.filter(c => c.teaches).map(opt).join('')}</optgroup>` +
+      `<optgroup label="Other courses (testing)">${courses.filter(c => !c.teaches).map(opt).join('')}</optgroup>`;
+    $('kind').innerHTML = Object.entries(kinds).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+    $('section').innerHTML = sections.map(s => `<option value="${s}">${sectionLabel(s)}</option>`).join('');
+    activeCourse = courses[0]?.code || null;
+    $('course').value = activeCourse;
+    $('kind').value = 'clp';
+    onKindChange();
+    show('app');
+    await loadMaterials();
+  }
+
+  // ── Course cards + preview ──
+  async function loadMaterials() {
+    materials = (await api('/api/lecturer/materials')).materials;
+    renderCourses();
+    renderPreview();
+  }
+
+  function renderCourses() {
+    $('courses').innerHTML = courses.map(c => {
+      const list = materials.filter(m => m.course_code === c.code);
+      const hasClp = list.some(m => m.kind === 'clp');
+      const slides = list.filter(m => m.kind === 'slides').length;
+      return `<button type="button" class="course ${c.code === activeCourse ? 'active' : ''}" data-course="${esc(c.code)}">
+        <span class="code">${esc(c.code)}</span>
+        <span class="name">${esc(c.name)}</span>
+        <span class="tags">
+          ${c.teaches ? '<span class="pill teach">You teach</span>' : ''}
+          <span class="pill ${hasClp ? 'ok' : 'missing'}">${hasClp ? '✔ CLP' : '● No CLP'}</span>
+          <span class="pill n">${slides} slide note${slides === 1 ? '' : 's'}</span>
+          <span class="pill n">${list.length} item${list.length === 1 ? '' : 's'}</span>
+        </span>
+      </button>`;
+    }).join('');
+  }
+
+  $('courses').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-course]');
+    if (!b) return;
+    activeCourse = b.dataset.course;
+    $('course').value = activeCourse;
+    autoTitle();
+    renderCourses();
+    renderPreview();
+  });
+
+  function itemHtml(m, withActions) {
+    const isLink = m.kind === 'link';
+    const ic = isLink ? KIND_ICON.link : (m.kind === 'clp' ? KIND_ICON.clp : fileIcon(m.original_name));
+    const meta = isLink
+      ? esc(m.url)
+      : `${fileTag(m.original_name)} · ${fmtSize(m.size_bytes)} · ${esc(m.original_name)}`;
+    const openLabel = isLink ? 'Open link' : /\.pdf$/i.test(m.original_name) ? 'View' : 'Download';
+    return `<div class="item">
+      <div class="ic">${ic}</div>
+      <div class="bd">
+        <div class="tt"><span class="kind ${m.kind}">${esc(kinds[m.kind] || m.kind).toUpperCase()}</span>${esc(m.title)}</div>
+        <div class="mt">${meta} · added ${fmtDate(m.uploaded_at)}</div>
+        ${m.notes ? `<div class="nt">${esc(m.notes)}</div>` : ''}
+      </div>
+      ${withActions ? `<div class="acts">
+        <button type="button" class="btn ghost sm" data-open="${m.id}">${openLabel}</button>
+        <button type="button" class="btn ghost sm" data-rename="${m.id}">Rename</button>
+        <button type="button" class="btn danger sm" data-del="${m.id}">Delete</button>
+      </div>` : ''}
+    </div>`;
+  }
+
+  function renderPreview() {
+    const c = courses.find(x => x.code === activeCourse);
+    $('pvTitle').textContent = c ? `${c.code} — ${c.name}` : 'Course page';
+    const list = materials.filter(m => m.course_code === activeCourse);
+    if (!list.length) {
+      $('preview').innerHTML = `<div class="empty">Nothing posted for this course yet.<br>Add the Course Learning Plan first — it goes in <b>General</b>.</div>`;
+      return;
+    }
+    const used = sections.filter(s => list.some(m => m.section === s));
+    $('preview').innerHTML = used.map(s => {
+      const items = list.filter(m => m.section === s);
+      return `<div class="sec">
+        <div class="sh">${sectionLabel(s)} <span class="cnt">· ${items.length} item${items.length === 1 ? '' : 's'}</span></div>
+        ${items.map(m => itemHtml(m, true)).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  $('preview').addEventListener('click', async (e) => {
+    const open   = e.target.closest('[data-open]');
+    const rename = e.target.closest('[data-rename]');
+    const del    = e.target.closest('[data-del]');
+    if (open) {
+      const m = materials.find(x => x.id === Number(open.dataset.open));
+      if (m) await openMaterial(m);
+    }
+    if (rename) {
+      const m = materials.find(x => x.id === Number(rename.dataset.rename));
+      if (!m) return;
+      const title = prompt('New title for this item:', m.title);
+      if (title === null || !title.trim() || title.trim() === m.title) return;
+      try {
+        await api(`/api/lecturer/materials/${m.id}`, { method: 'PATCH', body: JSON.stringify({ title: title.trim() }) });
+        await loadMaterials();
+      } catch (err) { alert(err.message); }
+    }
+    if (del) {
+      const m = materials.find(x => x.id === Number(del.dataset.del));
+      if (!m || !confirm(`Delete "${m.title}" from ${m.course_code} (${sectionLabel(m.section)})? Students will no longer see it.`)) return;
+      try { await api(`/api/lecturer/materials/${m.id}`, { method: 'DELETE' }); await loadMaterials(); }
+      catch (err) { alert(err.message); }
+    }
+  });
+
+  // Links open directly; files need the login token, so fetch them as a blob.
+  // PDFs open in a new tab, other files download with their original name.
+  async function openMaterial(m) {
+    if (m.kind === 'link') { window.open(m.url, '_blank', 'noopener'); return; }
+    const isPdf = /\.pdf$/i.test(m.original_name);
+    const win = isPdf ? window.open('', '_blank') : null;
+    try {
+      const res = await fetch(`/api/lecturer/materials/${m.id}/file`, { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) throw new Error('Could not open the file');
+      const url = URL.createObjectURL(await res.blob());
+      if (isPdf) { if (win) win.location = url; else window.location = url; return; }
+      const a = document.createElement('a');
+      a.href = url; a.download = m.original_name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+      if (win) win.close();
+      alert(err.message);
+    }
+  }
+
+  // ── Upload form ──
+  // Default title: the chosen file's name (so different files never share a title);
+  // before a file is chosen, a sensible placeholder for the type.
+  function autoTitle() {
+    if (titleTouched) return;
+    const kind = $('kind').value, sec = $('section').value;
+    if (chosenFile && kind !== 'link') {
+      $('title').value = chosenFile.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim();
+      return;
+    }
+    const c = courses.find(x => x.code === $('course').value);
+    const wk = sec === 'general' ? '' : sectionLabel(sec) + ' - ';
+    const t = {
+      clp:      c ? `CLP - ${c.code} ${c.name} Course Learning Plan` : 'Course Learning Plan',
+      slides:   `${wk}Slide Notes`,
+      tutorial: `${wk}Tutorial / Lab Sheet`,
+      other:    '',
+      link:     '',
+    }[kind];
+    $('title').value = t || '';
+  }
+
+  // ── Fill the form in from the chosen file's name ──
+  // Course: its code ("IPB49906", "IPB 49906"), full name, or initials ("FYP2").
+  // Type: keywords (CLP / learning plan, slides / lecture / .pptx, tutorial / lab).
+  // Section: "Week 3", "Wk3", "W03"; otherwise General for plans and documents.
+  const squash = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const initials = (name) => squash(name.split(/\s+/).map(w => /^\d+$/.test(w) ? w : w[0] || '').join(''));
+
+  function detectFromFile(name) {
+    const base = name.replace(/\.[^.]+$/, '');
+    const text = ' ' + base.toLowerCase().replace(/[_\-.()[\]]+/g, ' ').replace(/\s+/g, ' ') + ' ';
+    const flat = squash(base);
+    // Initials must be a word of their own ("FYP2", "FYP 2"), never letters inside a word like "Ahmad".
+    const words = text.replace(/([a-z])\s+(\d)/g, '$1$2');
+    const hasWord = (w) => new RegExp(`(^|[^a-z0-9])${w}([^a-z0-9]|$)`).test(words);
+
+    const course =
+      courses.find(c => flat.includes(squash(c.code))) ||
+      courses.find(c => flat.includes(squash(c.name))) ||
+      courses.find(c => initials(c.name).length >= 3 && hasWord(initials(c.name))) || null;
+
+    let kind = 'other';
+    if (/\b(clp|course learning plan|learning plan|course plan|course outline|syllabus)\b/.test(text)) kind = 'clp';
+    else if (/\.(pptx?)$/i.test(name) || /\b(slides?|lecture|lect|chapter|topic|notes?)\b/.test(text)) kind = 'slides';
+    else if (/\b(tutorial|tut|lab|labsheet|exercise|worksheet|practical)\b/.test(text)) kind = 'tutorial';
+
+    const wk = text.match(/\b(?:week|wk|w|minggu)\s*0?(\d{1,2})\b/);
+    const n = wk ? Number(wk[1]) : 0;
+    const section = n >= 1 && n <= 14 ? `week-${n}` : (kind === 'clp' || kind === 'other') ? 'general' : null;
+
+    const title = base.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+    return { course, kind, section, title };
+  }
+
+  function applyDetection(f) {
+    const d = detectFromFile(f.name);
+    const filled = [];
+    if (d.course && d.course.code !== $('course').value) {
+      $('course').value = d.course.code;
+      activeCourse = d.course.code;
+      renderCourses(); renderPreview();
+    }
+    if (d.course) filled.push('course');
+    $('kind').value = d.kind; filled.push('type');
+    updateKindUI();
+    if (d.section) { $('section').value = d.section; filled.push('section'); }
+    else if ($('section').value === 'general') $('section').value = 'week-1';
+    if (!titleTouched) { $('title').value = d.title; filled.push('title'); }
+    $('autoHint').textContent = `✨ Filled in the ${filled.join(', ')} from the file name — please check before uploading.`;
+    $('autoHint').classList.remove('hidden');
+  }
+
+  function onKindChange() {
+    const kind = $('kind').value;
+    // Sensible default section for each type
+    if (kind === 'clp' || kind === 'link') $('section').value = 'general';
+    else if ($('section').value === 'general') $('section').value = 'week-1';
+    updateKindUI();
+    titleTouched = false;
+    autoTitle();
+    updateButton();
+  }
+
+  function updateKindUI() {
+    const isLink = $('kind').value === 'link';
+    $('urlField').classList.toggle('hidden', !isLink);
+    $('url').required = isLink;
+    $('fileArea').classList.toggle('hidden', isLink);
+    $('upSub').textContent = isLink
+      ? 'Share a link, e.g. a WhatsApp group, lecture recording or online class.'
+      : 'PDF, PowerPoint, Word or Excel — up to 25 MB.';
+    $('upBtn').textContent = isLink ? '🔗 Add link' : '⬆ Upload';
+  }
+
+  function updateButton() {
+    const isLink = $('kind').value === 'link';
+    $('upBtn').disabled = isLink ? !$('url').value.trim() : !chosenFile;
+  }
+
+  $('kind').addEventListener('change', onKindChange);
+  $('section').addEventListener('change', autoTitle);
+  $('course').addEventListener('change', () => {
+    activeCourse = $('course').value;
+    autoTitle(); renderCourses(); renderPreview();
+  });
+  $('title').addEventListener('input', () => { titleTouched = $('title').value.trim() !== ''; });
+  $('url').addEventListener('input', updateButton);
+
+  function pickFile(f) {
+    if (!f) return;
+    $('dropErr').classList.add('hidden');
+    const reject = (text) => { $('dropErr').textContent = text; $('dropErr').classList.remove('hidden'); };
+    if (!ALLOWED.test(f.name)) { reject(`"${f.name}" can't be uploaded. Choose a PDF, PowerPoint, Word or Excel file.`); return; }
+    if (f.size > MAX_BYTES) { reject(`"${f.name}" is ${fmtSize(f.size)} — the limit is 25 MB.`); return; }
+    chosenFile = f;
+    $('drop').classList.add('has');
+    $('dropIc').textContent = fileIcon(f.name);
+    $('dropT').textContent = f.name;
+    $('dropH').textContent = fmtSize(f.size) + ' · click to change';
+    $('upMsg').classList.add('hidden');
+    applyDetection(f);
+    updateButton();
+  }
+
+  const drop = $('drop');
+  drop.addEventListener('click', () => $('file').click());
+  drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
+  $('file').addEventListener('change', () => pickFile($('file').files[0]));
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => pickFile(e.dataTransfer.files[0]));
+
+  function flash(kind, text) {
+    $('upMsg').className = 'msg ' + kind;
+    $('upMsg').textContent = text;
+    $('upMsg').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    chosenFile = null;
+    $('file').value = '';
+    $('url').value = '';
+    $('notes').value = '';
+    $('drop').classList.remove('has');
+    $('dropErr').classList.add('hidden');
+    $('autoHint').classList.add('hidden');
+    $('dropIc').textContent = '📄';
+    $('dropT').textContent = 'Click to choose a file';
+    $('dropH').textContent = 'or drag and drop it here';
+    titleTouched = false;
+    autoTitle();
+    updateButton();
+  }
+
+  $('upForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const isLink = $('kind').value === 'link';
+    if (!isLink && !chosenFile) return;
+    const fd = new FormData();
+    fd.append('course_code', $('course').value);
+    fd.append('kind', $('kind').value);
+    fd.append('section', $('section').value);
+    fd.append('title', $('title').value);
+    fd.append('notes', $('notes').value);
+    if (isLink) fd.append('url', $('url').value.trim());
+    else fd.append('file', chosenFile);
+
+    // XHR (not fetch) so we can show upload progress.
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/lecturer/materials');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    $('prog').classList.toggle('hidden', isLink);
+    $('progBar').style.width = '0%';
+    $('upBtn').disabled = true;
+    xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) $('progBar').style.width = Math.round(ev.loaded / ev.total * 100) + '%'; };
+    xhr.onload = async () => {
+      $('prog').classList.add('hidden');
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status === 201) {
+        const m = data.material;
+        flash('ok', `Added "${m.title}" to ${m.course_code} · ${sectionLabel(m.section)}. Students can see it now.`);
+        resetForm();
+        await loadMaterials();
+      } else {
+        flash('err', data.message || 'Upload failed');
+        updateButton();
+        if (xhr.status === 401) { setToken(null); show('auth'); }
+      }
+    };
+    xhr.onerror = () => { $('prog').classList.add('hidden'); flash('err', 'Network error — is the mock portal running?'); updateButton(); };
+    xhr.send(fd);
+  });
+
+  // ── Restore session on refresh ──
+  (async () => {
+    if (!token) return show('auth');
+    try { await enter(); } catch { setToken(null); show('auth'); }
+  })();
+</script>
+</body>
+</html>
