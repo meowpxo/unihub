@@ -3,7 +3,8 @@
  *
  * Lecturers sign in on /lecturer.html and post course materials for the courses
  * they teach: Course Learning Plans (CLP), slide notes, tutorial/lab sheets,
- * other documents, and links (e.g. WhatsApp group, lecture recordings). Each item
+ * assignments (with a due date), other documents, and links (e.g. WhatsApp group,
+ * lecture recordings). Each item
  * sits in a section — "General" or "Week 1"…"Week 14" — like a VLE course page.
  *
  * Item details are saved to course-materials.json and uploaded files to
@@ -25,6 +26,7 @@ const KINDS = {
   clp:      'Course Learning Plan',
   slides:   'Slide Notes',
   tutorial: 'Tutorial / Lab Sheet',
+  assignment: 'Assignment',
   other:    'Document',
   link:     'Link',
 };
@@ -104,7 +106,7 @@ function save() {
   catch (e) { console.warn('[lecturers] could not save course-materials.json:', e.message); }
 }
 
-function addMaterial({ lecturer, course_code, course_name, section, kind, title, notes, file, url }) {
+function addMaterial({ lecturer, course_code, course_name, section, kind, title, notes, file, url, due_date, due_time }) {
   const m = {
     id: db.nextId++,
     course_code,
@@ -119,6 +121,8 @@ function addMaterial({ lecturer, course_code, course_name, section, kind, title,
     stored_name:   file ? file.filename : null,
     size_bytes:    file ? file.size : null,
     url: url || null,
+    due_date: due_date || null,
+    due_time: due_time || null,
     uploaded_at: new Date().toISOString(),
   };
   db.materials.push(m);
@@ -138,6 +142,12 @@ function materialsByLecturer(staffId) {
 
 function materialsForCourse(code) {
   return db.materials.filter(m => m.course_code === code).sort(byCourseOrder);
+}
+
+// Assignments posted by lecturers for a set of courses (a student's enrolment).
+function assignmentsForCourses(codes) {
+  const set = new Set(codes);
+  return db.materials.filter(m => m.kind === 'assignment' && set.has(m.course_code));
 }
 
 function materialById(id) {
@@ -169,5 +179,6 @@ load();
 
 module.exports = {
   UPLOAD_DIR, KINDS, SECTIONS, authenticate, publicLecturer,
-  addMaterial, materialsByLecturer, materialsForCourse, materialById, renameMaterial, deleteMaterial, filePath,
+  addMaterial, materialsByLecturer, materialsForCourse, assignmentsForCourses,
+  materialById, renameMaterial, deleteMaterial, filePath,
 };

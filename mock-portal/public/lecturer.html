@@ -38,6 +38,11 @@
   .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid #d7ddec;border-radius:10px;font-size:14px;color:var(--text);background:#fff;outline:none;transition:.15s}
   .field textarea{resize:vertical;min-height:62px}
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(27,95,196,.15)}
+  .pw{position:relative}
+  .pw input{padding-right:46px}
+  .pw input::-ms-reveal{display:none}
+  .pw-eye{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#5b6b8c;cursor:pointer}
+  .pw-eye:hover{background:#eef2fa;color:var(--brand-2)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border:0;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;color:#fff;background:var(--brand-2);transition:.15s}
   .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)} .btn[disabled]{opacity:.55;cursor:default;filter:none;transform:none}
@@ -110,6 +115,8 @@
   .kind.slides{background:#fff0e0;color:#a14e00}
   .kind.tutorial{background:#efe9ff;color:#5b3fa8}
   .kind.link{background:#e3f7ee;color:#127a52}
+  .kind.assignment{background:#ffe4e4;color:#b42318}
+  .item .due{color:#b42318;font-size:12.5px;font-weight:700;margin-top:3px}
   .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
 
   @media (max-width:960px){ .grid{grid-template-columns:1fr} }
@@ -177,7 +184,7 @@
       <!-- Upload form -->
       <form class="card" id="upForm">
         <h3>Add course material</h3>
-        <p class="sub" id="upSub">PDF, PowerPoint, Word or Excel — up to 25 MB.</p>
+        <p class="sub" id="upSub">PDF, PowerPoint, Word, Excel, text, image or zip — up to 50 MB.</p>
         <div id="upMsg" class="msg hidden"></div>
 
         <div class="field">
@@ -202,8 +209,18 @@
           <label for="url">Link URL</label>
           <input id="url" type="url" placeholder="https://chat.whatsapp.com/…  or  https://teams.microsoft.com/…">
         </div>
+        <div class="row2 hidden" id="dueField">
+          <div class="field">
+            <label for="dueDate">Due date</label>
+            <input id="dueDate" type="date">
+          </div>
+          <div class="field">
+            <label for="dueTime">Due time</label>
+            <input id="dueTime" type="time" value="23:59">
+          </div>
+        </div>
         <div class="field">
-          <label for="notes">Note for students <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <label for="notes" id="notesLabel">Note for students <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
           <textarea id="notes" maxlength="500" placeholder="e.g. Read before Week 3 class."></textarea>
         </div>
 
@@ -215,11 +232,12 @@
           </div>
           <div id="dropErr" class="msg err hidden" style="margin:10px 0 0"></div>
           <div id="autoHint" class="msg ok hidden" style="margin:10px 0 0"></div>
-          <input type="file" id="file" class="hidden" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.xlsm,.csv">
+          <input type="file" id="file" class="hidden" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.txt,.rtf,.png,.jpg,.jpeg,.zip,.rar,.7z">
         </div>
 
         <div class="progress hidden" id="prog"><div id="progBar"></div></div>
         <button class="btn block" id="upBtn" type="submit" style="margin-top:16px" disabled>⬆ Upload</button>
+        <div id="upHint" class="hidden" style="margin-top:8px;text-align:center;font-size:12.5px;font-weight:600;color:#b42318"></div>
       </form>
 
       <!-- Course page preview -->
@@ -242,12 +260,14 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const fmtSize = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
   const fmtDate = (iso) => new Date(iso).toLocaleString('en-MY', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  const ALLOWED = /\.(pdf|pptx|ppt|docx|doc|xlsx|xlsm|xls|csv)$/i;
-  const MAX_BYTES = 25 * 1024 * 1024;
-  const KIND_ICON = { clp: '📘', slides: '🖥️', tutorial: '📝', other: '📄', link: '🔗' };
+  const ALLOWED = /\.(pdf|pptx|ppt|docx|doc|xlsx|xlsm|xls|csv|txt|rtf|png|jpg|jpeg|zip|rar|7z)$/i;
+  const MAX_BYTES = 50 * 1024 * 1024;
+  const KIND_ICON = { clp: '📘', slides: '🖥️', tutorial: '📝', assignment: '📌', other: '📄', link: '🔗' };
+  const fmtDue = (m) => new Date(m.due_date + 'T00:00:00').toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + (m.due_time ? `, ${m.due_time}` : '');
+  const localToday = () => new Intl.DateTimeFormat('en-CA').format(new Date());
   const sectionLabel = (s) => s === 'general' ? 'General' : 'Week ' + s.replace('week-', '');
-  const fileIcon = (name) => /\.pptx?$/i.test(name) ? '🖥️' : /\.(xlsx|xlsm|xls|csv)$/i.test(name) ? '📊' : /\.docx?$/i.test(name) ? '📝' : '📄';
-  const fileTag = (name) => (String(name).match(/\.([a-z]+)$/i) || [, ''])[1].toUpperCase();
+  const fileIcon = (name) => /\.pptx?$/i.test(name) ? '🖥️' : /\.(xlsx|xlsm|xls|csv)$/i.test(name) ? '📊' : /\.(docx?|rtf|txt)$/i.test(name) ? '📝' : /\.(zip|rar|7z)$/i.test(name) ? '🗜️' : /\.(png|jpe?g)$/i.test(name) ? '🖼️' : '📄';
+  const fileTag = (name) => (String(name).match(/\.([a-z0-9]+)$/i) || [, ''])[1].toUpperCase();
 
   const TOKEN_KEY = 'lecturer_token';
   let token = null;
@@ -359,20 +379,22 @@
 
   function itemHtml(m, withActions) {
     const isLink = m.kind === 'link';
-    const ic = isLink ? KIND_ICON.link : (m.kind === 'clp' ? KIND_ICON.clp : fileIcon(m.original_name));
+    const hasFile = !!m.stored_name;
+    const ic = KIND_ICON[m.kind] && (isLink || m.kind === 'clp' || m.kind === 'assignment') ? KIND_ICON[m.kind] : fileIcon(m.original_name);
     const meta = isLink
       ? esc(m.url)
-      : `${fileTag(m.original_name)} · ${fmtSize(m.size_bytes)} · ${esc(m.original_name)}`;
+      : hasFile ? `${fileTag(m.original_name)} · ${fmtSize(m.size_bytes)} · ${esc(m.original_name)}` : 'No file attached';
     const openLabel = isLink ? 'Open link' : /\.pdf$/i.test(m.original_name) ? 'View' : 'Download';
     return `<div class="item">
       <div class="ic">${ic}</div>
       <div class="bd">
         <div class="tt"><span class="kind ${m.kind}">${esc(kinds[m.kind] || m.kind).toUpperCase()}</span>${esc(m.title)}</div>
+        ${m.due_date ? `<div class="due">Due ${esc(fmtDue(m))}</div>` : ''}
         <div class="mt">${meta} · added ${fmtDate(m.uploaded_at)}</div>
         ${m.notes ? `<div class="nt">${esc(m.notes)}</div>` : ''}
       </div>
       ${withActions ? `<div class="acts">
-        <button type="button" class="btn ghost sm" data-open="${m.id}">${openLabel}</button>
+        ${hasFile || isLink ? `<button type="button" class="btn ghost sm" data-open="${m.id}">${openLabel}</button>` : ''}
         <button type="button" class="btn ghost sm" data-rename="${m.id}">Rename</button>
         <button type="button" class="btn danger sm" data-del="${m.id}">Delete</button>
       </div>` : ''}
@@ -460,6 +482,7 @@
       clp:      c ? `CLP - ${c.code} ${c.name} Course Learning Plan` : 'Course Learning Plan',
       slides:   `${wk}Slide Notes`,
       tutorial: `${wk}Tutorial / Lab Sheet`,
+      assignment: '',
       other:    '',
       link:     '',
     }[kind];
@@ -488,6 +511,7 @@
 
     let kind = 'other';
     if (/\b(clp|course learning plan|learning plan|course plan|course outline|syllabus)\b/.test(text)) kind = 'clp';
+    else if (/\b(assignments?|homework|coursework)\b/.test(text)) kind = 'assignment';
     else if (/\.(pptx?)$/i.test(name) || /\b(slides?|lecture|lect|chapter|topic|notes?)\b/.test(text)) kind = 'slides';
     else if (/\b(tutorial|tut|lab|labsheet|exercise|worksheet|practical)\b/.test(text)) kind = 'tutorial';
 
@@ -502,6 +526,13 @@
   function applyDetection(f) {
     const d = detectFromFile(f.name);
     const filled = [];
+    // A lecturer who chose "Assignment" is attaching its brief: keep that type and
+    // section unless the file name names a week.
+    const keepAssignment = $('kind').value === 'assignment';
+    if (keepAssignment) {
+      d.kind = 'assignment';
+      if (d.section === 'general') d.section = null;
+    }
     if (d.course && d.course.code !== $('course').value) {
       $('course').value = d.course.code;
       activeCourse = d.course.code;
@@ -511,7 +542,7 @@
     $('kind').value = d.kind; filled.push('type');
     updateKindUI();
     if (d.section) { $('section').value = d.section; filled.push('section'); }
-    else if ($('section').value === 'general') $('section').value = 'week-1';
+    else if (!keepAssignment && $('section').value === 'general') $('section').value = 'week-1';
     if (!titleTouched) { $('title').value = d.title; filled.push('title'); }
     $('autoHint').textContent = `✨ Filled in the ${filled.join(', ')} from the file name — please check before uploading.`;
     $('autoHint').classList.remove('hidden');
@@ -529,19 +560,37 @@
   }
 
   function updateKindUI() {
-    const isLink = $('kind').value === 'link';
+    const kind = $('kind').value;
+    const isLink = kind === 'link', isAssignment = kind === 'assignment';
     $('urlField').classList.toggle('hidden', !isLink);
     $('url').required = isLink;
+    $('dueField').classList.toggle('hidden', !isAssignment);
+    $('dueDate').required = isAssignment;
+    $('dueDate').min = localToday();
     $('fileArea').classList.toggle('hidden', isLink);
     $('upSub').textContent = isLink
       ? 'Share a link, e.g. a WhatsApp group, lecture recording or online class.'
-      : 'PDF, PowerPoint, Word or Excel — up to 25 MB.';
-    $('upBtn').textContent = isLink ? '🔗 Add link' : '⬆ Upload';
+      : isAssignment
+        ? 'Students get this in the UniHub app as a task with its due date.'
+        : 'PDF, PowerPoint, Word, Excel, text, image or zip — up to 50 MB.';
+    $('notesLabel').firstChild.textContent = isAssignment ? 'Instructions for students ' : 'Note for students ';
+    if (!chosenFile) $('dropT').textContent = isAssignment ? 'Attach the assignment brief' : 'Click to choose a file';
+    if (!chosenFile) $('dropH').textContent = isAssignment ? 'Optional — click, or drag and drop it here' : 'or drag and drop it here';
+    $('upBtn').textContent = isLink ? '🔗 Add link' : isAssignment ? '📌 Post assignment' : '⬆ Upload';
   }
 
   function updateButton() {
-    const isLink = $('kind').value === 'link';
-    $('upBtn').disabled = isLink ? !$('url').value.trim() : !chosenFile;
+    const kind = $('kind').value;
+    // Says what's still missing, so a faded button is never a mystery.
+    const missing =
+      kind === 'link' ? (!$('url').value.trim() && 'Enter the link URL to continue.')
+      : kind === 'assignment'
+        ? (!$('title').value.trim() ? 'Enter a title to post this assignment.'
+          : !$('dueDate').value ? 'Choose a due date to post this assignment.' : '')
+        : (!chosenFile && 'Choose a file to upload.');
+    $('upBtn').disabled = !!missing;
+    $('upHint').textContent = missing || '';
+    $('upHint').classList.toggle('hidden', !missing);
   }
 
   $('kind').addEventListener('change', onKindChange);
@@ -550,15 +599,16 @@
     activeCourse = $('course').value;
     autoTitle(); renderCourses(); renderPreview();
   });
-  $('title').addEventListener('input', () => { titleTouched = $('title').value.trim() !== ''; });
+  $('title').addEventListener('input', () => { titleTouched = $('title').value.trim() !== ''; updateButton(); });
   $('url').addEventListener('input', updateButton);
+  $('dueDate').addEventListener('input', updateButton);
 
   function pickFile(f) {
     if (!f) return;
     $('dropErr').classList.add('hidden');
     const reject = (text) => { $('dropErr').textContent = text; $('dropErr').classList.remove('hidden'); };
-    if (!ALLOWED.test(f.name)) { reject(`"${f.name}" can't be uploaded. Choose a PDF, PowerPoint, Word or Excel file.`); return; }
-    if (f.size > MAX_BYTES) { reject(`"${f.name}" is ${fmtSize(f.size)} — the limit is 25 MB.`); return; }
+    if (!ALLOWED.test(f.name)) { reject(`"${f.name}" can't be uploaded. Choose a PDF, PowerPoint, Word, Excel, text, image or zip file.`); return; }
+    if (f.size > MAX_BYTES) { reject(`"${f.name}" is ${fmtSize(f.size)} — the limit is 50 MB.`); return; }
     chosenFile = f;
     $('drop').classList.add('has');
     $('dropIc').textContent = fileIcon(f.name);
@@ -592,8 +642,9 @@
     $('dropErr').classList.add('hidden');
     $('autoHint').classList.add('hidden');
     $('dropIc').textContent = '📄';
-    $('dropT').textContent = 'Click to choose a file';
-    $('dropH').textContent = 'or drag and drop it here';
+    $('dueDate').value = '';
+    $('dueTime').value = '23:59';
+    updateKindUI();
     titleTouched = false;
     autoTitle();
     updateButton();
@@ -602,21 +653,23 @@
   $('upForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const isLink = $('kind').value === 'link';
-    if (!isLink && !chosenFile) return;
+    const isAssignment = $('kind').value === 'assignment';
+    if (!isLink && !isAssignment && !chosenFile) return;
     const fd = new FormData();
     fd.append('course_code', $('course').value);
     fd.append('kind', $('kind').value);
     fd.append('section', $('section').value);
     fd.append('title', $('title').value);
     fd.append('notes', $('notes').value);
+    if (isAssignment) { fd.append('due_date', $('dueDate').value); fd.append('due_time', $('dueTime').value); }
     if (isLink) fd.append('url', $('url').value.trim());
-    else fd.append('file', chosenFile);
+    else if (chosenFile) fd.append('file', chosenFile);
 
     // XHR (not fetch) so we can show upload progress.
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/lecturer/materials');
     xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    $('prog').classList.toggle('hidden', isLink);
+    $('prog').classList.toggle('hidden', !chosenFile);
     $('progBar').style.width = '0%';
     $('upBtn').disabled = true;
     xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) $('progBar').style.width = Math.round(ev.loaded / ev.total * 100) + '%'; };
@@ -637,6 +690,29 @@
     };
     xhr.onerror = () => { $('prog').classList.add('hidden'); flash('err', 'Network error — is the mock portal running?'); updateButton(); };
     xhr.send(fd);
+  });
+
+  // ── Show/hide button on every password box ──
+  const EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>';
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'pw';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pw-eye';
+    const show = (visible) => {
+      input.type = visible ? 'text' : 'password';
+      btn.innerHTML = visible ? EYE_OFF : EYE;
+      btn.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+      btn.title = visible ? 'Hide password' : 'Show password';
+    };
+    show(false);
+    btn.addEventListener('click', () => show(input.type === 'password'));
+    input.form?.addEventListener('submit', () => show(false));   // never left showing after signing in
+    wrap.appendChild(btn);
   });
 
   // ── Restore session on refresh ──

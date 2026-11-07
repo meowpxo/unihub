@@ -23,10 +23,20 @@ const multer = require('multer');
 const { STUDENT, CATALOG, courseOverview, moodleAssignments } = require('./data');
 const store = require('./store');
 const lecturers = require('./lecturers');
+const mailer = require('./mailer');
 
-// In-memory session tokens issued at login (dev only; cleared on restart).
-// Accounts themselves are persisted by store.js — only live sessions are here.
+// Session tokens issued at login, kept in sessions.json so a portal restart doesn't
+// log students out — UniHub keeps using the token to pick up new assignments.
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 const SESSIONS = new Map(); // token -> student_id
+try {
+  for (const [token, sid] of Object.entries(JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8')))) SESSIONS.set(token, sid);
+} catch { /* first run */ }
+
+function saveSessions() {
+  try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(SESSIONS))); }
+  catch (e) { console.warn('[mock-portal] could not save sessions.json:', e.message); }
+}
 
 const app = express();
 const PORT = process.env.MOCK_PORT || 4000;
@@ -71,6 +81,7 @@ function sessionStudent(req) {
 function newSession(student) {
   const token = 'sess-' + crypto.randomBytes(16).toString('hex');
   SESSIONS.set(token, student.student_id);
+  saveSessions();
   return token;
 }
 
@@ -151,6 +162,74 @@ app.post('/api/portal/login', (req, res) => {
   return res.json({ success: true, token, student: store.publicProfile(student) });
 });
 
+// ── Forgot password ───────────────────────────────────────────────────────────
+// One active code per student: stored hashed, valid 10 minutes, locked after 5
+// wrong tries, and a new one can be requested once a minute.
+const RESETS = new Map(); // student_id -> { codeHash, expiresAt, attempts, sentAt }
+const RESET_MINUTES = 10;
+const RESET_MAX_ATTEMPTS = 5;
+const RESET_COOLDOWN_MS = 60 * 1000;
+
+// POST /api/portal/forgot-password  { username }  (student ID or email)
+// Always answers the same way, so it can't be used to find out who has an account.
+app.post('/api/portal/forgot-password', async (req, res) => {
+  const username = String((req.body || {}).username || '').trim();
+  if (!username) return res.status(400).json({ success: false, message: 'Enter your Student ID or email' });
+
+  const student = store.byUsername(username);
+  const last = student && RESETS.get(student.student_id);
+  if (student && !(last && Date.now() - last.sentAt < RESET_COOLDOWN_MS)) {
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    RESETS.set(student.student_id, {
+      codeHash: store.hashPw(code),
+      expiresAt: Date.now() + RESET_MINUTES * 60 * 1000,
+      attempts: 0,
+      sentAt: Date.now(),
+    });
+    try {
+      await mailer.sendResetCode(student.email, student.fullname, code);
+    } catch (e) {
+      console.error('reset email error:', e.message);
+      RESETS.delete(student.student_id);
+      return res.status(502).json({ success: false, message: 'Could not send the reset email. Please try again later.' });
+    }
+  }
+  res.json({ success: true, message: 'If that account exists, a 6-digit code has been sent to its email.' });
+});
+
+// POST /api/portal/reset-password  { username, code, new_password }
+app.post('/api/portal/reset-password', (req, res) => {
+  const { username, code, new_password } = req.body || {};
+  if (!username || !code || !new_password) {
+    return res.status(400).json({ success: false, message: 'Your ID, the code and a new password are required' });
+  }
+  if (String(new_password).length < 6) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  }
+
+  const invalid = () => res.status(400).json({ success: false, message: 'Invalid or expired code. Request a new one.' });
+  const student = store.byUsername(username);
+  const reset = student && RESETS.get(student.student_id);
+  if (!reset) return invalid();
+  if (Date.now() > reset.expiresAt || reset.attempts >= RESET_MAX_ATTEMPTS) {
+    RESETS.delete(student.student_id);
+    return invalid();
+  }
+  if (!store.verifyPw(String(code).trim(), reset.codeHash)) {
+    reset.attempts++;
+    const left = RESET_MAX_ATTEMPTS - reset.attempts;
+    return res.status(400).json({
+      success: false,
+      message: left > 0 ? `Incorrect code. ${left} attempt${left === 1 ? '' : 's'} left.` : 'Too many incorrect attempts. Request a new code.',
+    });
+  }
+
+  store.setPassword(student, new_password);
+  RESETS.delete(student.student_id);
+  console.log(`[mock-portal] password reset: ${student.student_id}`);
+  res.json({ success: true, message: 'Password reset. You can now log in with your new password.' });
+});
+
 // Who is this session? (used by the UI to restore state on refresh)
 app.get('/api/portal/me', (req, res) => {
   const student = sessionStudent(req);
@@ -160,7 +239,7 @@ app.get('/api/portal/me', (req, res) => {
 
 app.post('/api/portal/logout', (req, res) => {
   const token = bearer(req);
-  if (token) SESSIONS.delete(token);
+  if (token && SESSIONS.delete(token)) saveSessions();
   res.json({ success: true });
 });
 
@@ -192,7 +271,20 @@ app.get('/api/portal/timetable', (req, res) => {
 app.get('/api/portal/assignments', (req, res) => {
   const student = sessionStudent(req);
   if (!student) return res.status(401).json({ success: false, message: 'Not logged in' });
-  const assignments = [...student.data.assignments].sort((x, y) => x.due_date.localeCompare(y.due_date));
+  // The student's own activities, plus anything lecturers posted for their courses.
+  const posted = lecturers.assignmentsForCourses(student.data.courseCards.map(c => c.code)).map(m => ({
+    id: `L${m.id}`,
+    title: m.title,
+    course: m.course_name,
+    course_code: m.course_code,
+    due_date: m.due_date,
+    due_time: m.due_time,
+    description: m.notes,
+    lecturer: m.lecturer_name,
+    material_id: m.id,
+    file_name: m.original_name,
+  }));
+  const assignments = [...student.data.assignments, ...posted].sort((x, y) => x.due_date.localeCompare(y.due_date));
   res.json({ success: true, assignments });
 });
 
@@ -242,8 +334,9 @@ function lecturerCourses(lecturer) {
 }
 const canPostTo = (lecturer, code) => lecturerCourses(lecturer).some(c => c.code === code);
 
-// Allowed uploads: PDF, PowerPoint, Word and Excel, max 25 MB. Saved under
-// uploads/learning-plans/ with a random name that keeps the real extension.
+// Every material type accepts the same documents: PDF, PowerPoint, Word, Excel,
+// text, images and zipped files, max 50 MB. Programs (.exe etc.) stay blocked.
+// Saved under uploads/learning-plans/ with a random name that keeps the extension.
 const FILE_TYPES = {
   '.pdf':  'application/pdf',
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -254,16 +347,27 @@ const FILE_TYPES = {
   '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
   '.xls':  'application/vnd.ms-excel',
   '.csv':  'text/csv',
+  '.txt':  'text/plain',
+  '.rtf':  'application/rtf',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.zip':  'application/zip',
+  '.rar':  'application/vnd.rar',
+  '.7z':   'application/x-7z-compressed',
 };
-const ALLOWED_LABEL = 'PDF, PowerPoint, Word or Excel';
-const fileExt = (name) => (String(name).toLowerCase().match(/\.(pdf|pptx|ppt|docx|doc|xlsx|xlsm|xls|csv)$/) || [])[0] || null;
+const ALLOWED_LABEL = 'PDF, PowerPoint, Word, Excel, text, image or zip';
+const fileExt = (name) => {
+  const ext = (String(name).toLowerCase().match(/\.[a-z0-9]+$/) || [])[0];
+  return ext && FILE_TYPES[ext] ? ext : null;
+};
 
 const materialUpload = multer({
   storage: multer.diskStorage({
     destination: lecturers.UPLOAD_DIR,
     filename: (_req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${fileExt(file.originalname)}`),
   }),
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ok = !!fileExt(file.originalname);
     cb(ok ? null : Object.assign(new Error(`Only ${ALLOWED_LABEL} files are allowed`), { code: 'BAD_TYPE' }), ok);
@@ -277,6 +381,13 @@ function sendMaterialFile(res, m) {
   res.type(FILE_TYPES[ext]).sendFile(lecturers.filePath(m), {
     headers: { 'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(m.original_name)}` },
   });
+}
+
+const localToday = () => new Intl.DateTimeFormat('en-CA').format(new Date()); // YYYY-MM-DD
+function isRealDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
 // POST /api/lecturer/login  { username, password }  (staff ID or email)
@@ -317,19 +428,20 @@ app.get('/api/lecturer/materials', (req, res) => {
 
 // POST /api/lecturer/materials  multipart:
 //   course_code, section, kind, title, notes?  +  file (any kind except link)  or  url (kind=link)
+//   kind=assignment also needs due_date (YYYY-MM-DD) and due_time (HH:MM); its file is optional
 app.post('/api/lecturer/materials', (req, res) => {
   const lecturer = sessionLecturer(req);
   if (!lecturer) return res.status(401).json({ success: false, message: 'Not logged in' });
 
   materialUpload(req, res, (err) => {
     if (err) {
-      const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 25 MB)' : err.message;
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 50 MB)' : err.message;
       return res.status(400).json({ success: false, message });
     }
     const discard = () => { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} };
     const fail = (code, message) => { discard(); return res.status(code).json({ success: false, message }); };
 
-    const { course_code, section, kind, title, notes, url } = req.body || {};
+    const { course_code, section, kind, title, notes, url, due_date, due_time } = req.body || {};
     if (!lecturers.KINDS[kind]) return fail(400, 'Choose what type of material this is');
     if (!lecturers.SECTIONS.includes(section)) return fail(400, 'Choose a section (General or a week)');
     if (!String(title || '').trim()) return fail(400, 'A title is required');
@@ -340,6 +452,10 @@ app.post('/api/lecturer/materials', (req, res) => {
       link = String(url || '').trim();
       if (!/^https?:\/\/\S+$/i.test(link)) return fail(400, 'Enter a full link starting with http:// or https://');
       discard();   // links don't carry a file
+    } else if (kind === 'assignment') {
+      if (!isRealDate(due_date)) return fail(400, 'Choose a due date');
+      if (due_date < localToday()) return fail(400, "The due date can't be in the past");
+      if (due_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(due_time)) return fail(400, 'Enter a valid due time');
     } else if (!req.file) {
       return fail(400, `Choose a ${ALLOWED_LABEL} file to upload`);
     }
@@ -349,6 +465,8 @@ app.post('/api/lecturer/materials', (req, res) => {
       section, kind, title: String(title).trim().slice(0, 150),
       notes: String(notes || '').trim().slice(0, 500),
       file: kind === 'link' ? null : req.file, url: link,
+      due_date: kind === 'assignment' ? due_date : null,
+      due_time: kind === 'assignment' ? (due_time || '23:59') : null,
     });
     console.log(`[mock-portal] material posted: ${m.course_code} ${m.section} ${m.kind} by ${lecturer.staff_id}`);
     res.status(201).json({ success: true, material: m });

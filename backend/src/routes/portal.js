@@ -9,5 +9,6 @@ router.get('/status',      portalCtrl.status);
 router.post('/connect',    portalCtrl.connect);
 router.post('/disconnect', portalCtrl.disconnect);
 router.post('/sync',       portalCtrl.sync);
+router.post('/sync-assignments', portalCtrl.syncAssignments);
 
 module.exports = router;

@@ -44,10 +44,10 @@ Open **http://localhost:4000** in a browser. You get a VLE-style landing page
 with a **student login**. Sign in with the demo account, then browse the
 Dashboard, Timetable, Grades and Assignments.
 
-**Demo account:** student ID `12345678` · password `demo123`
+**Demo account:** student ID `12345678` · password `demo123`. **Forgot password?** on the login card emails a 6-digit code through the Gmail details in `backend/.env`; if those are empty, the code prints in the portal terminal.
 (defined in `data.js` → `ACCOUNTS`; add more there.)
 
-Login issues an in-memory session token (cleared when the server restarts). The
+Login issues a session token (saved in `sessions.json`, git-ignored). The
 UI stores it in `localStorage` and sends it as `Authorization: Bearer <token>`.
 This is **mock auth for development/demo only** — not real security, and not a
 clone of any real institution's sign-in.
@@ -59,7 +59,10 @@ portal landing page). Lecturers post materials for the courses they teach, each
 in a section — **General** or **Week 1–14** — like a VLE course page:
 
 - **Course Learning Plan (CLP)**, **Slide Notes**, **Tutorial / Lab Sheet**, **Document**
-  — PDF, PowerPoint, Word or Excel, max 25 MB
+  — PDF, PowerPoint, Word, Excel, text, images or zipped files, max 50 MB
+- **Assignment** — title, instructions, due date and time, optional brief file.
+  Joins the enrolled students' assignment list, and reaches the UniHub app as a task
+  (the app checks every 30 seconds while Home or Tasks is open)
 - **Link** — e.g. WhatsApp group, lecture recording, online class
 
 **Demo lecturers** (defined in `lecturers.js`), password `lecturer123`:

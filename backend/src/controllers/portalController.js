@@ -9,6 +9,7 @@
  *   POST   /api/portal-link/connect     – { username, password } link the account
  *   POST   /api/portal-link/disconnect  – remove the link
  *   POST   /api/portal-link/sync        – pull portal data into the app
+ *   POST   /api/portal-link/sync-assignments – background check for new assignments
  *
  * Requires the portal_links table and the `source` columns added by
  * backend/database/migrations/001_portal_link.sql.
@@ -92,6 +93,85 @@ async function getStoredToken(userId) {
   return row?.portal_token || null;
 }
 
+// Assignments → tasks (upsert by moodle_id, like Moodle sync). The portal is the
+// source of truth for synced tasks: drop any synced task (including old demo Moodle
+// ones) that isn't in this sync, e.g. one the lecturer deleted. Manual tasks stay.
+// Runs one at a time per student, so the background check and a manual sync
+// can't both insert the same new assignment. Returns { count, added }.
+const assignmentQueues = new Map();
+
+function saveAssignments(userId, portalTasks) {
+  const previous = assignmentQueues.get(userId) || Promise.resolve();
+  const run = previous.catch(() => {}).then(() => writeAssignments(userId, portalTasks));
+  assignmentQueues.set(userId, run);
+  return run;
+}
+
+async function writeAssignments(userId, portalTasks) {
+  const keepIds = portalTasks.map(a => `portal_${a.id}`);
+  await db.query(
+    `DELETE FROM tasks WHERE user_id = ? AND source = 'moodle'
+       AND moodle_id NOT IN (?)`,
+    [userId, keepIds.length ? keepIds : ['']]
+  );
+
+  const added = [];
+  for (const a of portalTasks) {
+    const moodleId = `portal_${a.id}`;
+    const notes = [a.description, a.due_time && `Due at ${a.due_time}`, a.lecturer && `Posted by ${a.lecturer}`]
+      .filter(Boolean).join('\n') || null;
+    const [existing] = await db.query(
+      'SELECT id FROM tasks WHERE user_id = ? AND moodle_id = ?',
+      [userId, moodleId]
+    );
+    if (existing.length === 0) {
+      await db.query(
+        `INSERT INTO tasks
+           (user_id, title, course, course_code, task_type, priority,
+            due_date, notes, source, moodle_id, moodle_synced_at)
+         VALUES (?, ?, ?, ?, 'assignment', 'Med', ?, ?, 'moodle', ?, NOW())`,
+        [userId, a.title, a.course, a.course_code, a.due_date, notes, moodleId]
+      );
+      added.push({ title: a.title, course_code: a.course_code, due_date: a.due_date, due_time: a.due_time || null });
+    } else {
+      await db.query(
+        `UPDATE tasks
+           SET title=?, course=?, course_code=?, due_date=?, notes=?, moodle_synced_at=NOW()
+         WHERE user_id=? AND moodle_id=?`,
+        [a.title, a.course, a.course_code, a.due_date, notes, userId, moodleId]
+      );
+    }
+  }
+  return { count: portalTasks.length, added };
+}
+
+// ── POST /sync-assignments ────────────────────────────────────────────────────
+// Light check the app runs in the background: assignments only, so new ones from
+// a lecturer arrive without replacing the timetable and grades every time.
+async function syncAssignments(req, res) {
+  const userId = req.user.id;
+  try {
+    const token = await getStoredToken(userId);
+    if (!token) return res.json({ success: true, connected: false, added: [] });
+
+    let data;
+    try {
+      data = await portal.getAssignments(token);
+    } catch (e) {
+      if (e.code === 'PORTAL_AUTH') {
+        return res.status(401).json({ success: false, needsConnect: true, message: 'Portal session expired' });
+      }
+      throw e;
+    }
+
+    const { count, added } = await saveAssignments(userId, data.assignments || []);
+    return res.json({ success: true, connected: true, count, added });
+  } catch (err) {
+    console.error('portal sync-assignments error:', err);
+    return res.status(500).json({ success: false, message: 'Assignment check failed' });
+  }
+}
+
 // ── POST /sync ────────────────────────────────────────────────────────────────
 // Pulls timetable, grades and assignments from the portal and upserts them into
 // the app's tables, replacing any previously portal-sourced rows.
@@ -170,41 +250,8 @@ async function sync(req, res) {
       result.grades++;
     }
 
-    // ── Assignments → tasks (upsert by moodle_id, like Moodle sync) ──
-    // The portal is the source of truth for synced tasks: drop any synced task
-    // (including old demo Moodle ones) that isn't in this sync. Manual tasks stay.
-    const portalTasks = assignments.assignments || [];
-    const keepIds = portalTasks.map(a => `portal_${a.id}`);
-    await db.query(
-      `DELETE FROM tasks WHERE user_id = ? AND source = 'moodle'
-         AND moodle_id NOT IN (?)`,
-      [userId, keepIds.length ? keepIds : ['']]
-    );
-
-    for (const a of portalTasks) {
-      const moodleId = `portal_${a.id}`;
-      const [existing] = await db.query(
-        'SELECT id FROM tasks WHERE user_id = ? AND moodle_id = ?',
-        [userId, moodleId]
-      );
-      if (existing.length === 0) {
-        await db.query(
-          `INSERT INTO tasks
-             (user_id, title, course, course_code, task_type, priority,
-              due_date, notes, source, moodle_id, moodle_synced_at)
-           VALUES (?, ?, ?, ?, 'assignment', 'Med', ?, ?, 'moodle', ?, NOW())`,
-          [userId, a.title, a.course, a.course_code, a.due_date, a.description || null, moodleId]
-        );
-      } else {
-        await db.query(
-          `UPDATE tasks
-             SET title=?, course=?, course_code=?, due_date=?, notes=?, moodle_synced_at=NOW()
-           WHERE user_id=? AND moodle_id=?`,
-          [a.title, a.course, a.course_code, a.due_date, a.description || null, userId, moodleId]
-        );
-      }
-      result.assignments++;
-    }
+    // ── Assignments → tasks ──
+    result.assignments = (await saveAssignments(userId, assignments.assignments || [])).count;
 
     return res.json({
       success: true,
@@ -217,4 +264,4 @@ async function sync(req, res) {
   }
 }
 
-module.exports = { status, connect, disconnect, sync };
+module.exports = { status, connect, disconnect, sync, syncAssignments };

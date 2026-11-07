@@ -45,6 +45,11 @@
   .field label{display:block;font-size:12px;font-weight:600;color:#44527a;margin-bottom:6px}
   .field input{width:100%;padding:12px 14px;border:1.5px solid #d7ddec;border-radius:10px;font-size:14px;color:#1a2440;outline:none;transition:.15s}
   .field input:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(42,99,214,.15)}
+  .pw{position:relative}
+  .pw input{padding-right:46px}
+  .pw input::-ms-reveal{display:none}
+  .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#5b6b8c;cursor:pointer}
+  .pw-eye:hover{background:#eef2fa;color:var(--brand-2)}
   .btn{width:100%;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--orange),var(--gold));transition:.15s}
   .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)} .btn[disabled]{opacity:.6;cursor:default}
   .login-err{background:#ffe9e9;color:#b32020;border:1px solid #ffc9c9;padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:16px}
@@ -191,6 +196,10 @@
   .kind.slides{background:#fff0e0;color:#a14e00}
   .kind.tutorial{background:#efe9ff;color:#5b3fa8}
   .kind.link{background:#e3f7ee;color:#127a52}
+  .kind.assignment{background:#ffe4e4;color:#b42318}
+  .citem .due{color:#b42318;font-size:12.5px;font-weight:700;margin-top:3px}
+  .brief{color:var(--brand-2);font-weight:600;font-size:12.5px;cursor:pointer}
+  .brief:hover{text-decoration:underline}
 
   @media (max-width:980px){ .layout{grid-template-columns:1fr} .rail{order:2} .stats{grid-template-columns:repeat(2,1fr)} .stat:nth-child(2){border-right:0} }
   @media (max-width:860px){ .hero{grid-template-columns:1fr;padding:34px 22px} .login-card{justify-self:stretch;max-width:none} .hero-copy h1{font-size:34px} .vle-links{display:none} }
@@ -232,6 +241,7 @@
           <input id="u" name="username" autocomplete="username" placeholder="12345678" required /></div>
         <div class="field"><label for="p">Password</label>
           <input id="p" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required /></div>
+        <p class="swap" style="text-align:right;margin:-6px 0 14px"><a id="toForgot">Forgot password?</a></p>
         <button class="btn" id="loginBtn" type="submit">Log in</button>
         <p class="swap">New student? <a id="toReg">Create an account</a></p>
         <div class="demo-hint"><b>Demo account</b> — ID <b>12345678</b> · password <b>demo123</b></div>
@@ -252,6 +262,32 @@
           <input id="rPass" type="password" autocomplete="new-password" placeholder="at least 6 characters" required /></div>
         <button class="btn" id="regBtn" type="submit">Create account</button>
         <p class="swap">Already have an account? <a id="toLogin">Log in</a></p>
+      </form>
+
+      <!-- FORGOT PASSWORD: step 1, ask for the account -->
+      <form id="forgotForm" class="authform hidden">
+        <h2>Forgot password</h2>
+        <p class="lead">Enter your account and we'll email you a 6-digit code.</p>
+        <div class="login-err hidden" id="forgotErr"></div>
+        <div class="field"><label for="fUser">Student ID or Email</label>
+          <input id="fUser" autocomplete="username" placeholder="12345678" required /></div>
+        <button class="btn" id="forgotBtn" type="submit">Send code</button>
+        <p class="swap"><a class="backToLogin">Back to log in</a></p>
+      </form>
+
+      <!-- FORGOT PASSWORD: step 2, enter the code and a new password -->
+      <form id="resetForm" class="authform hidden">
+        <h2>Enter your code</h2>
+        <p class="lead" id="resetLead"></p>
+        <div class="login-err hidden" id="resetErr"></div>
+        <div class="field"><label for="fCode">6-digit code</label>
+          <input id="fCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456" required /></div>
+        <div class="field"><label for="fPass">New password</label>
+          <input id="fPass" type="password" autocomplete="new-password" placeholder="at least 6 characters" required /></div>
+        <div class="field"><label for="fPass2">Confirm new password</label>
+          <input id="fPass2" type="password" autocomplete="new-password" placeholder="re-enter new password" required /></div>
+        <button class="btn" id="resetBtn" type="submit">Reset password</button>
+        <p class="swap"><a class="backToLogin">Back to log in</a></p>
       </form>
     </div>
   </section>
@@ -336,6 +372,47 @@ $('#logoutBtn').addEventListener('click', logout);
 $('#toReg').addEventListener('click',()=>{ $('#loginForm').classList.add('hidden'); $('#registerForm').classList.remove('hidden'); $('#regErr').classList.add('hidden'); });
 $('#toLogin').addEventListener('click',()=>{ $('#registerForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden'); $('#loginErr').classList.add('hidden'); });
 
+// Forgot password: account → emailed code → new password
+function showAuthForm(id){
+  ['loginForm','registerForm','forgotForm','resetForm'].forEach(f=>$('#'+f).classList.toggle('hidden',f!==id));
+  document.querySelectorAll('.login-err').forEach(e=>e.classList.add('hidden'));
+}
+async function postJson(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.success) throw new Error(data.message||'Something went wrong. Please try again.');
+  return data;
+}
+$('#toForgot').addEventListener('click',()=>{ $('#fUser').value=$('#u').value; showAuthForm('forgotForm'); });
+document.querySelectorAll('.backToLogin').forEach(a=>a.addEventListener('click',()=>showAuthForm('loginForm')));
+$('#forgotForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const btn=$('#forgotBtn'), err=$('#forgotErr');
+  err.classList.add('hidden'); btn.disabled=true; btn.textContent='Sending…';
+  try{
+    const data=await postJson('/api/portal/forgot-password',{username:$('#fUser').value});
+    $('#resetLead').textContent=data.message+' It expires in 10 minutes.';
+    $('#fCode').value=''; $('#fPass').value=''; $('#fPass2').value='';
+    showAuthForm('resetForm');
+  }catch(ex){ err.textContent=ex.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; btn.textContent='Send code'; }
+});
+$('#resetForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const btn=$('#resetBtn'), err=$('#resetErr');
+  err.classList.add('hidden');
+  if($('#fPass').value!==$('#fPass2').value){ err.textContent='The two passwords don\'t match.'; err.classList.remove('hidden'); return; }
+  btn.disabled=true; btn.textContent='Resetting…';
+  try{
+    await postJson('/api/portal/reset-password',{username:$('#fUser').value,code:$('#fCode').value,new_password:$('#fPass').value});
+    $('#u').value=$('#fUser').value; $('#p').value='';
+    showAuthForm('loginForm');
+    $('#loginErr').textContent='Password reset. Log in with your new password.';
+    $('#loginErr').classList.remove('hidden');
+  }catch(ex){ err.textContent=ex.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; btn.textContent='Reset password'; }
+});
+
 // Register a new portal account (auto-logs in on success)
 $('#registerForm').addEventListener('submit', async(e)=>{
   e.preventDefault();
@@ -369,6 +446,8 @@ async function load(){
 const dueClass=d=>{const n=Math.ceil((new Date(d)-new Date())/86400000);return n<0?'past':n<=7?'soon':'';};
 const timeFmt=t=>t.slice(0,5);
 const fmtDate=d=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+const dueText=a=>esc(a.due_date)+(a.due_time?' '+esc(a.due_time):'');
+const briefLink=a=>a.file_name?`<br><span class="brief" data-action="brief" data-id="${esc(a.material_id)}" data-name="${esc(a.file_name)}">📎 ${esc(a.file_name)}</span>`:'';
 
 /* ── Course card ── */
 function courseCard(c){
@@ -437,18 +516,15 @@ function vGrades(d){
 function vAssignments(d){
   return `<h1 class="page-title">Assignments</h1>
     <div class="panel"><table><thead><tr><th>Title</th><th>Course</th><th>Description</th><th>Due</th></tr></thead><tbody>
-    ${d.assignments.map(a=>`<tr><td><b>${esc(a.title)}</b></td>
+    ${d.assignments.map(a=>`<tr><td><b>${esc(a.title)}</b>${briefLink(a)}</td>
       <td><span class="code">${esc(a.course_code)}</span><br>${esc(a.course)}</td>
       <td style="color:var(--muted);max-width:320px">${esc(a.description)}</td>
-      <td class="due ${dueClass(a.due_date)}">${esc(a.due_date)}</td></tr>`).join('')}
+      <td class="due ${dueClass(a.due_date)}">${dueText(a)}</td></tr>`).join('')}
     </tbody></table></div>`;
 }
 function vCourse(d){
   const c=d.courses.find(x=>x.code===currentCourse);
   if(!c) return `<button class="back" data-action="back">← Back to My Courses</button><p class="empty">Course not found.</p>`;
-  const grade=d.grades.find(g=>g.course_code===c.code);
-  const slots=[...d.timetable].filter(s=>s.course_code===c.code).sort((a,b)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time));
-  const asgs=[...d.assignments].filter(a=>a.course_code===c.code).sort((a,b)=>a.due_date.localeCompare(b.due_date));
   return `<button class="back" data-action="back">← Back to My Courses</button>
     <div class="course-hero">
       <div class="cover c${c.color}"></div>
@@ -458,50 +534,65 @@ function vCourse(d){
         <div class="right"><div class="pc">${c.progress}%</div><div class="l" style="color:var(--muted);font-size:12px">${c.activities_done}/${c.activities_total} activities</div></div>
       </div>
     </div>
-    <div class="panel"><h3>Course content</h3><div id="courseContent"><div class="loading">Loading course content…</div></div></div>
-    <div class="panel"><h3>Assignments</h3>${asgs.length?`<table><thead><tr><th>Title</th><th>Description</th><th>Due</th></tr></thead><tbody>
-      ${asgs.map(a=>`<tr><td><b>${esc(a.title)}</b></td><td style="color:var(--muted);max-width:360px">${esc(a.description)}</td>
-        <td class="due ${dueClass(a.due_date)}">${esc(a.due_date)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">No assignments for this course.</p>'}</div>
-    <div class="panel"><h3>Grade breakdown</h3>${grade?`<table><thead><tr><th>Component</th><th>Weight</th><th>Score</th><th style="width:38%">Progress</th></tr></thead><tbody>
-      ${grade.assessments.map(a=>{const p=Math.round(a.score/a.max_score*100);
-        return `<tr><td>${esc(a.name)}</td><td>${a.weight}%</td><td>${a.score} / ${a.max_score}</td><td><div class="bar"><i style="width:${p}%"></i></div></td></tr>`;}).join('')}
-      <tr><td colspan="3"><b>Current total</b></td><td><b style="color:var(--green)">${grade.total_percentage}%</b></td></tr></tbody></table>`:'<p class="empty">No grades recorded yet.</p>'}</div>
-    <div class="panel"><h3>Class schedule</h3>${slots.length?`<table><thead><tr><th>Day</th><th>Time</th><th>Venue</th><th>Type</th></tr></thead><tbody>
-      ${slots.map(s=>`<tr><td><b>${DAYS[s.day_of_week]}</b></td><td>${timeFmt(s.start_time)}–${timeFmt(s.end_time)}</td>
-        <td>${esc(s.venue)}</td><td><span class="pill ${esc(s.slot_type)}">${esc(s.slot_type)}</span></td></tr>`).join('')}</tbody></table>`:'<p class="empty">No scheduled classes for this course.</p>'}</div>`;
+    <div class="panel"><h3>Course content</h3><div id="courseContent"><div class="loading">Loading course content…</div></div></div>`;
 }
 const VIEWS={dashboard:vDashboard,courses:vCourses,course:vCourse,timetable:vTimetable,grades:vGrades,assignments:vAssignments};
 
-/* ── Course content (CLP, slide notes, sheets, links posted by the lecturer) ── */
-const KIND_LABEL={clp:'Course Learning Plan',slides:'Slide Notes',tutorial:'Tutorial / Lab Sheet',other:'Document',link:'Link'};
+/* ── Course content: one section per material type, same order as the lecturer's list ── */
+const CATEGORIES=[
+  {kind:'clp',title:'Course Learning Plan',icon:'📘'},
+  {kind:'slides',title:'Slide Notes',icon:'🖥️'},
+  {kind:'tutorial',title:'Tutorial / Lab Sheet',icon:'📝'},
+  {kind:'assignment',title:'Assignment',icon:'📌'},
+  {kind:'other',title:'Document',icon:'📄'},
+  {kind:'link',title:'Link',icon:'🔗'},
+];
 const sectionLabel=s=>s==='general'?'General':'Week '+s.replace('week-','');
-const sectionRank=s=>s==='general'?0:Number(s.replace('week-',''))||99;
-const fileIcon=n=>/\.pptx?$/i.test(n)?'🖥️':/\.(xlsx|xlsm|xls|csv)$/i.test(n)?'📊':/\.docx?$/i.test(n)?'📝':'📄';
-const fileTag=n=>(String(n).match(/\.([a-z]+)$/i)||[,''])[1].toUpperCase();
+const fileIcon=n=>/\.pptx?$/i.test(n)?'🖥️':/\.(xlsx|xlsm|xls|csv)$/i.test(n)?'📊':/\.(docx?|rtf|txt)$/i.test(n)?'📝':/\.(zip|rar|7z)$/i.test(n)?'🗜️':/\.(png|jpe?g)$/i.test(n)?'🖼️':'📄';
+const fileTag=n=>(String(n).match(/\.([a-z0-9]+)$/i)||[,''])[1].toUpperCase();
 const sizeFmt=b=>b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
 let courseMaterials=[];
+
+function materialRow(m,cat){
+  const link=m.kind==='link';
+  const ic=link||m.kind==='clp'?cat.icon:fileIcon(m.original_name);
+  const meta=link?esc(m.url):`${fileTag(m.original_name)} · ${sizeFmt(m.size_bytes)} · posted by ${esc(m.lecturer_name)}`;
+  const go=link?'Open link ↗':/\.pdf$/i.test(m.original_name)?'View':'Download';
+  return `<div class="citem" data-action="material" data-id="${m.id}" role="button" tabindex="0">
+    <div class="ic">${ic}</div>
+    <div class="bd"><div class="tt"><span class="kind ${esc(m.kind)}">${esc(sectionLabel(m.section).toUpperCase())}</span>${esc(m.title)}</div>
+      <div class="mt">${meta}</div>${m.notes?`<div class="nt">${esc(m.notes)}</div>`:''}</div>
+    <div class="go">${go}</div></div>`;
+}
+// Assignments come from the student's list, so portal activities and lecturer posts sit together.
+function assignmentRow(a,cat){
+  const posted=courseMaterials.find(m=>m.id===a.material_id);
+  const open=a.file_name?`data-action="brief" data-id="${esc(a.material_id)}" data-name="${esc(a.file_name)}" role="button"`:'style="cursor:default"';
+  const go=!a.file_name?'':/\.pdf$/i.test(a.file_name)?'View':'Download';
+  return `<div class="citem" ${open}>
+    <div class="ic">${cat.icon}</div>
+    <div class="bd"><div class="tt">${posted?`<span class="kind assignment">${esc(sectionLabel(posted.section).toUpperCase())}</span>`:''}${esc(a.title)}</div>
+      <div class="due">Due ${esc(fmtDate(a.due_date))}${a.due_time?', '+esc(a.due_time):''}</div>
+      ${a.lecturer?`<div class="mt">posted by ${esc(a.lecturer)}</div>`:''}${a.description?`<div class="nt">${esc(a.description)}</div>`:''}</div>
+    <div class="go">${go}</div></div>`;
+}
 
 async function loadCourseContent(code){
   const box=$('#courseContent'); if(!box) return;
   try{
-    courseMaterials=(await api('/api/portal/courses/'+encodeURIComponent(code)+'/materials')).materials;
+    const [mats,asg]=await Promise.all([
+      api('/api/portal/courses/'+encodeURIComponent(code)+'/materials'),
+      api('/api/portal/assignments'),
+    ]);
     if(currentCourse!==code||!$('#courseContent')) return;   // student moved on while loading
-    if(!courseMaterials.length){ box.innerHTML='<p class="empty">Your lecturer hasn\'t posted any materials for this course yet.</p>'; return; }
-    const secs=[...new Set(courseMaterials.map(m=>m.section))].sort((a,b)=>sectionRank(a)-sectionRank(b));
-    box.innerHTML=secs.map(s=>{
-      const items=courseMaterials.filter(m=>m.section===s);
-      return `<details class="csec" open><summary>${sectionLabel(s)} <span class="cnt">· ${items.length} item${items.length===1?'':'s'}</span><span class="arr">➜</span></summary>
-        ${items.map(m=>{
-          const link=m.kind==='link';
-          const ic=link?'🔗':m.kind==='clp'?'📘':fileIcon(m.original_name);
-          const meta=link?esc(m.url):`${fileTag(m.original_name)} · ${sizeFmt(m.size_bytes)} · posted by ${esc(m.lecturer_name)}`;
-          const go=link?'Open link ↗':/\.pdf$/i.test(m.original_name)?'View':'Download';
-          return `<div class="citem" data-action="material" data-id="${m.id}" role="button" tabindex="0">
-            <div class="ic">${ic}</div>
-            <div class="bd"><div class="tt"><span class="kind ${esc(m.kind)}">${esc((KIND_LABEL[m.kind]||m.kind).toUpperCase())}</span>${esc(m.title)}</div>
-              <div class="mt">${meta}</div>${m.notes?`<div class="nt">${esc(m.notes)}</div>`:''}</div>
-            <div class="go">${go}</div></div>`;
-        }).join('')}</details>`;
+    courseMaterials=mats.materials;
+    const assignments=asg.assignments.filter(a=>a.course_code===code);
+    box.innerHTML=CATEGORIES.map(cat=>{
+      const rows=cat.kind==='assignment'
+        ? assignments.map(a=>assignmentRow(a,cat))
+        : courseMaterials.filter(m=>m.kind===cat.kind).map(m=>materialRow(m,cat));
+      return `<details class="csec"${rows.length?' open':''}><summary>${cat.icon} ${cat.title} <span class="cnt">· ${rows.length} item${rows.length===1?'':'s'}</span><span class="arr">➜</span></summary>
+        ${rows.join('')||'<p class="empty" style="padding:0 16px 12px">Nothing posted yet.</p>'}</details>`;
     }).join('');
   }catch(err){ box.innerHTML=`<p class="empty">Could not load course content. <small>${esc(err.message)}</small></p>`; }
 }
@@ -511,14 +602,17 @@ async function loadCourseContent(code){
 async function openMaterial(id){
   const m=courseMaterials.find(x=>x.id===Number(id)); if(!m) return;
   if(m.kind==='link'){ window.open(m.url,'_blank','noopener'); return; }
-  const isPdf=/\.pdf$/i.test(m.original_name);
+  if(m.stored_name) openFile(m.id,m.original_name);
+}
+async function openFile(id,name){
+  const isPdf=/\.pdf$/i.test(name);
   const win=isPdf?window.open('','_blank'):null;
   try{
-    const r=await fetch('/api/portal/materials/'+m.id+'/file',{headers:{Authorization:'Bearer '+TOKEN}});
+    const r=await fetch('/api/portal/materials/'+id+'/file',{headers:{Authorization:'Bearer '+TOKEN}});
     if(!r.ok) throw new Error('Could not open the file');
     const url=URL.createObjectURL(await r.blob());
     if(isPdf){ if(win) win.location=url; else window.location=url; return; }
-    const a=document.createElement('a'); a.href=url; a.download=m.original_name;
+    const a=document.createElement('a'); a.href=url; a.download=name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   }catch(err){ if(win) win.close(); alert(err.message); }
@@ -580,6 +674,7 @@ $('#view').addEventListener('click',e=>{
   else if(a==='nav'){ go(el.dataset.view); }
   else if(a==='back'){ go('courses'); }
   else if(a==='material'){ openMaterial(el.dataset.id); }
+  else if(a==='brief'){ openFile(el.dataset.id,el.dataset.name); }
 });
 $('#view').addEventListener('keydown',e=>{
   if(e.key!=='Enter') return;
@@ -598,6 +693,26 @@ $('#menuBtn').addEventListener('click',()=>$('#nav').classList.toggle('open'));
 
 // Landing-page nav links focus the login box so they do something useful
 document.querySelectorAll('.vle-links a').forEach(a=>a.addEventListener('click',ev=>{ ev.preventDefault(); $('#u').focus(); }));
+
+/* ── Show/hide button on every password box ── */
+const EYE='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>';
+document.querySelectorAll('input[type="password"]').forEach(input=>{
+  const wrap=document.createElement('div'); wrap.className='pw';
+  input.parentNode.insertBefore(wrap,input); wrap.appendChild(input);
+  const btn=document.createElement('button');
+  btn.type='button'; btn.className='pw-eye';
+  const show=visible=>{
+    input.type=visible?'text':'password';
+    btn.innerHTML=visible?EYE_OFF:EYE;
+    btn.setAttribute('aria-label',visible?'Hide password':'Show password');
+    btn.title=visible?'Hide password':'Show password';
+  };
+  show(false);
+  btn.addEventListener('click',()=>show(input.type==='password'));
+  input.form?.addEventListener('submit',()=>show(false));   // never left showing after signing in
+  wrap.appendChild(btn);
+});
 
 /* ── Boot ── */
 (async function boot(){

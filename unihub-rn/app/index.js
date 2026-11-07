@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 import { syncNotifications } from '../constants/notifications';
-import { syncPortal } from '../constants/portalSync';
+import { syncPortal, useNewAssignments } from '../constants/portalSync';
 import { Ionicons } from '@expo/vector-icons';
 
 const PRI_COLOR  = { High: Colors.accent3, Med: Colors.warn, Low: Colors.accent4 };
@@ -102,6 +102,7 @@ export default function DashboardScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useNewAssignments(load);
 
   // White status-bar icons over the navy header; back to dark on other screens.
   useFocusEffect(useCallback(() => {

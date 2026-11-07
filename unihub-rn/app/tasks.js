@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { apiFetch } from '../constants/api';
 import { syncNotifications } from '../constants/notifications';
-import { syncPortal } from '../constants/portalSync';
+import { syncPortal, useNewAssignments } from '../constants/portalSync';
 import { Ionicons } from '@expo/vector-icons';
 
 const FILTERS       = ['All', 'assignment', 'lab', 'study', 'fyp', 'quiz', 'other'];
@@ -57,6 +57,7 @@ export default function TasksScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); loadSyncStatus(); }, [load, loadSyncStatus]));
+  useNewAssignments(useCallback(() => { load(); loadSyncStatus(); }, [load, loadSyncStatus]));
 
   const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
 
@@ -228,6 +229,9 @@ export default function TasksScreen() {
                         {t.priority}
                       </Text>
                     </View>
+                    {t.notes && t.moodle_id?.startsWith('portal_L') ? (
+                      <Text style={styles.taskNotes} numberOfLines={4}>{t.notes}</Text>
+                    ) : null}
                   </View>
                 </TouchableOpacity>
               );
@@ -384,6 +388,7 @@ const styles = StyleSheet.create({
   courseTag:     { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 99 },
   courseTagText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   taskDue:       { fontSize: 11, color: Colors.muted },
+  taskNotes:     { fontSize: 12, color: Colors.muted, lineHeight: 17, marginTop: 6 },
   taskPri:       { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, marginLeft: 'auto' },
 
   fab: {

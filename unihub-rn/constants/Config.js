@@ -15,4 +15,5 @@ if (Platform.OS === 'android' && (devHost === '127.0.0.1' || devHost === 'localh
 // Used only if Expo can't tell us its host (e.g. a standalone build).
 const FALLBACK_HOST = '192.168.2.252';
 
-export const API_BASE_URL = 'https://weddings-pack-wondering-nominations.trycloudflare.com/api';
+export const API_BASE_URL = `http://${devHost || FALLBACK_HOST}:3000/api`;
+

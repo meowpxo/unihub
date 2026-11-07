@@ -111,8 +111,13 @@ function publicProfile(s) {
   };
 }
 
+function setPassword(student, password) {
+  student.passwordHash = hashPw(password);
+  save();
+}
+
 function count() { return Object.keys(db.students).length; }
 
 load();
 
-module.exports = { authenticate, create, byUsername, publicProfile, count };
+module.exports = { authenticate, create, byUsername, publicProfile, count, hashPw, verifyPw, setPassword };
